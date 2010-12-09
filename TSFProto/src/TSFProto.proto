@@ -10,10 +10,15 @@ message SpotList {
 
    optional string name = 2; // name identifying the original dataset 
    optional string filepath = 3; // path to the image data used to generate these spot data
-   optional int32 nr_pixels_x = 4; // nr pixels in x of original data
-   optional int32 nr_pixels_y = 5; // nr pixels in y of original data
-   optional float pixels_size = 6; // pixels size in nanometer
+   optional int64 uid = 4; // Unique ID, can be used by application to link to original data
+   optional int32 nr_pixels_x = 5; // nr pixels in x of original data
+   optional int32 nr_pixels_y = 6; // nr pixels in y of original data
+   optional float pixel_size = 7; // pixel size in nanometer
    optional int32 box_size = 17; // size (in pixels) of rectangular box used in Gaussian fitting
+   optional int32 nr_channels = 18; // Nr of channels in the original data set
+   optional int32 nr_frames = 19; // Nr of frames in the original data set
+   optional int32 nr_slices = 20; // Nr of slices in the original data set
+   optional int32 nr_pos = 21; // Nr of positions in the original data set
 
    enum IntensityUnits {
       COUNTS = 0;
@@ -28,8 +33,18 @@ message SpotList {
 
    // If units will always be the same for all spots, then use these units tags,
    // otherwise use the unit tags with each spot
-   optional LocationUnits location_units = 18;
+   optional LocationUnits location_units = 22;
+   optional IntensityUnits intensity_units = 23; // use only if different from SpotList
 
+   enum FitMode {
+      ONEAXIS = 0;
+      TWOAXIS = 1;
+      TWOAXISANDTHETA = 2;
+   }
+   // If fitmode  will always be the same for all spots, then use this fitmode
+   // otherwise use the fitmode with each spot
+   optional FitMode fit_mode = 24;
+      
    
    message Spot {
       optional int32 molecule = 1; // ID for this spot
@@ -48,6 +63,7 @@ message SpotList {
       optional IntensityUnits intensity_units = 18; // use only if different from SpotList
       optional float intensity = 10; // integrated spot density
       optional float background = 11; // background determined in fit
+      optional float sigma = 12; // half width at half height in location units
 
       optional int32 flag = 6; // flag to categorize spots. Implementation specific
 
@@ -67,12 +83,13 @@ message SpotList {
 
       // parameters determined during fit
       // BO: I am not sure what these all mean and waht their units are
-      optional float h = 109;
-      optional float w = 110;
-      optional float ax = 111;
-      optional float ay = 112;
-      optional float phi = 113;
-      optional float bg = 114;
+      optional float height = 110;
+      optional float width = 111;
+      optional float a = 112; // only use with fitmode == ONEAXIS
+      optional float ax = 113;
+      optional float ay = 114;
+      optional float phi = 115;
+      optional float bg = 116;
       
       // These ids can be used in your own .proto derived from this one
       extensions 1500 to 2047;
