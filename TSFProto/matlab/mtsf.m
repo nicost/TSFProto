@@ -127,6 +127,29 @@ classdef mtsf
             end           
         end  % getY
         
+        % 
+        function s = getS(mt)
+            s = zeros(mt.nrSpots, 1);
+            for i = 1 : mt.nrSpots
+                s(i,1) = mt.spotList.get(i-1).getSigma;
+            end
+        end
+        
+        function ch = getChannel(mt)
+            ch = zeros(mt.nrSpots, 1);
+            for i = 1 : mt.nrSpots
+                ch(i,1) = mt.spotList.get(i-1).getChannel;
+            end
+        end
+        
+        function f = getFrame(mt)
+            f = zeros(mt.nrSpots, 1);
+            for i = 1 : mt.nrSpots
+                f(i,1) = mt.spotList.get(i-1).getFrame;
+            end
+        end
+        
+        
     end  %methods
         
 end
