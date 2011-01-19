@@ -149,6 +149,13 @@ classdef mtsf
             end
         end
         
+        function p = getPos(mt)
+            p = zeros(mt.nrSpots, 1);
+            for i = 1 : mt.nrSpots
+                p(i,1) = mt.spotList.get(i-1).getPos;
+            end
+        end
+        
         
     end  %methods
         
