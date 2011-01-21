@@ -6,5 +6,5 @@ data(1,:) = l.getX;
 data(2,:) = l.getY;
 data(3,:) = l.getS;
 data(4,:) = l.getChannel;
-data(5,:) = l.getPos;
+data(5,:) = l.getFrame;
 data = data';
