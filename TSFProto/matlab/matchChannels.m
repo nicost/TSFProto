@@ -24,7 +24,7 @@ for frame = 1 : max(data(:,5))
     g = size(find(matched(:,5) == frame));
     sizem = [sizem; g];
 end
-sizem
+sizem;
 
                 
     
