@@ -1,0 +1,147 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1038\cocoasubrtf350
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fmodern\fcharset0 Courier;}
+{\colortbl;\red255\green255\blue255;\red160\green32\blue240;}
+\margl1440\margr1440\vieww18940\viewh19940\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\ql\qnatural\pardirnatural
+
+\f0\fs24 \cf0 Spotdata are from: /Volumes/nico/Images/20110120/gridTimeLapse-1.tsf\
+\
+Take all spot positions in channel 1 as base points.\
+Take all spot positions in channel 2 as input points.\
+\
+run the script:\
+\
+ t = cp2tform(input_points, base_points, transform);\
+c = tforminv(t, base_points);\
+std(input_points - c)\
+\
+Results for diffent transform settings:\
+\
+nonreflective similarity:\
+   65.8824   65.5896\
+\
+similarity:\
+   65.8824   65.5896\
+\
+affine:\
+    4.9388    4.3546\
+\
+projective:\
+    3.6990    3.3629\
+\
+polynomial order 2:\
+    2.9714    2.9262\
+\
+piecewise linear:\
+   1.0e-11 *\
+\
+    0.5523    0.3640\
+\
+lwm:\
+    0.7257    0.7494\
+\
+\
+\
+Now test piecewise linear and lwm on other 99 datapoints.\
+\
+piecewise linear: after datapoint 1, jumps to ~1.3nm:  Average of std of 100 points:\
+    1.3065    1.4312\
+\
+lwm, jumps to ~1.1 after first datapoint, Average of std of 100 points:\
+    1.0970    1.1382\
+\
+\
+\
+1/27/2011\
+Collected datasets:\
+A.: Step grid about 1 grid spacing 3x in x, 3x in y (image: /Volumes/nico/Images/20110127/2-Color-Grid-PositionsYXCc).\
+Fitting settings: Levenberg-Marquard, box size 12 (14 might be better), filter 130<S<165nm.  Fitting result: tsf: 
+\f1\fs20 \cf2 '/Volumes/nico/Images/20110127/YXCc.tsf')
+\f0\fs24 \cf0 \
+Calculate transform function based on first time point.  Use transfer function on first time point (using lwm transfer).  Difference with measured values:\
+mean:      	0.0008    0.0022\
+std:		0.6039    0.6630\
+Use transfer function for other positions:\
+\
+\
+	mean x-error			mean y-error			std x-error		std y-error\
+0.000814183970159580	0.00224997320406023	0.60385819785561	0.662989834559451\
+6.19237823108430	-0.161412741265417	0.925931695475409	0.907314616435266\
+0.777033139203753	-0.485520493836256	0.876854291654476	0.954572636423129\
+2.43392013046511	-0.102237309665234	0.906167795434039	0.963614039104311\
+5.03334346065683	0.233383806803869	0.919849301083457	0.924060058900665\
+3.09772068720656	0.0306475004165232	0.907570346405537	1.00274557622314\
+3.86798963766445	0.800203041417914	0.847907963525091	1.11823828683577\
+3.99144446267258	-1.46920237033789	0.950432321336358	0.990622521888195\
+-0.155321933815889	-0.610734186632305	0.894892165041957	1.07500428129999\
+\
+Means:\
+    2.8044   -0.1958    0.8704    0.9555\
+\
+Conclusion: There seems to be a systematic displacement in x, whereas y maps extremely well\
+\
+\
+DataSet B:  step grid 1 pixel at a time, 10 pixels in each direction for a total of 100 images.\
+tsf file: 
+\f1\fs20 \cf2 /Volumes/nico/Images/20110127/1pixelStepsA.tsf
+\fs24 \cf0 \
+
+\f0 \
+\
+First, use transform from A. \
+\
+Used at the first image:\
+ mean x-err	mean y-err		std x-err	std y-err	\
+   -4.5800   	-1.6958	    	0.8415    	0.9230\
+\
+Used at all images:\
+mean x-err	mean y-err		std x-err	std y-err\
+   -3.3871   	-0.1109    		1.2577    	1.1316\
+Note, rows 17, 35, and 39 contained std higher than 6. In row 17 this was caused by a single datapoint with and error of -432 nm in x and 290nm in y.  Excluding these rows lead to:\
+   -3.4163   -0.1195    1.0547    0.9981\
+\
+Same, but using a transform function calculated from frame 1 of this series:\
+    1.2010    1.5838    1.2684    1.1286\
+\
+Now, select the spots in the inner quadrant of the image, and repeat the procedure (using the transform function based on position 1 of the complete image):\
+    1.2841    1.6273    1.5680    1.1816\
+\
+\
+Conclusion:  Using the spot positions determined from a single 2-channel image from the grid, it is possible to map 2-channels from other images (from the same grid, taken within 10 pixels from the original position) onto each other with a std < 1nm, but a systematic error (as of yet of unknown origin) that has a mean of about 1.5nm and a distribution between -5 and 7 nm.\
+\
+\
+Use data from a week ago:  /Volumes/nico/Images/20110120/gridTimeLapse-1.tsf\
+\
+First, use the transform calculated above on this time lapse series (100 images over about 3 minutes):\
+\
+mean x-err	mean y-err		std x-err	std y-err\
+   39.0356  	-27.2388    		2.3254    	1.7672\
+std of the above measurements:\
+   3.4959    	1.1266    		0.2343    	0.1106\
+\
+Now, calculate the transform function based on the first image, and measure for all 100 images the difference between measured and predicted positions of the 2nd channel:\
+\
+mean x-err	mean y-err		std x-err	std y-err\
+    3.8606    	0.7666    		1.0985    	1.1424\
+std of the above measurements:\
+    3.4968    	1.1283    		0.0604    	0.0568\
+\
+Note, the observations that the std of the stds is extremely small, suggests that high-frequency distortions in the mapping function (such as those cause by pixel response non-uniformity) are not the culprit.  Rather, there seems to be some systematic (linear) displacement between the two images happening at the time-scale of the experiment.  Also, the overall displacement over the course of a week is only 40nm in x and 30nm in y, indicating that the system is quite stable.\
+\
+Plotting the overall displacement over time shows:\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\ql\qnatural\pardirnatural
+\cf0 {{\NeXTGraphic Pasted Graphic.tiff \width12480 \height9080
+}¬}\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\ql\qnatural\pardirnatural
+\cf0 \
+\
+Timescale: ~3 sec per unit.  \
+\
+\
+Questions:\
+\
+- What causes the displacement between consecutive measurements and how can it be avoided?\
+- \
+\
+}
