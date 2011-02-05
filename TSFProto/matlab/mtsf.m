@@ -156,6 +156,13 @@ classdef mtsf
             end
         end
         
+        function s = getSlice(mt)
+            s = zeros(mt.nrSpots, 1);
+            for i = 1 : mt.nrSpots
+                s(i,1) = mt.spotList.get(i-1).getSlice;
+            end
+        end
+        
         
     end  %methods
         
