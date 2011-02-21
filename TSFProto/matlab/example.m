@@ -1,6 +1,6 @@
 % Example usage:
 
-fn = '/Volumes/nico/Images/20110131/fanlow-1.tsf';
+fn = '/Users/nico/Images/gridTimeLapse-1.tsf.tsf';
 data = importTSFData(fn);
 mc = matchChannels(data, 1000);
 [r, stagepos] = matchFrames(mc, 500);

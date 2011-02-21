@@ -20,6 +20,7 @@ message SpotList {
    optional int32 nr_slices = 20; // Nr of slices in the original data set
    optional int32 nr_pos = 21; // Nr of positions in the original data set
 
+
    enum IntensityUnits {
       COUNTS = 0;
       PHOTONS = 1;
@@ -44,6 +45,8 @@ message SpotList {
    // If fitmode  will always be the same for all spots, then use this fitmode
    // otherwise use the fitmode with each spot
    optional FitMode fit_mode = 24;
+   optional bool is_track = 25 [default = false]; // flag indicating whether this is a sequence of spot data in consecutive time frames thought to originate from the same entity
+
       
    
    message Spot {
