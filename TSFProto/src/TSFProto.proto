@@ -50,23 +50,32 @@ message SpotList {
       
    
    message Spot {
-      optional int32 molecule = 1; // ID for this spot
-      optional int32 channel = 2; // channels are 1-based
-      optional int32 frame = 3; // frames are 1-based
+      required int32 molecule = 1; // ID for this spot
+      required int32 channel = 2; // channels are 1-based
+      required int32 frame = 3; // frames are 1-based
       optional int32 slice = 4; // slices are 1-based
       optional int32 pos = 5; // positions are 1-based
 
       // xyz coordinates of the spot in location_units  after fitting and optional correction
       optional LocationUnits location_units = 17;
-      optional float x = 7;
-      optional float y = 8;
+      required float x = 7;
+      required float y = 8;
       optional float z = 9;
 
       // Intensity values
       optional IntensityUnits intensity_units = 18; // use only if different from SpotList
-      optional float intensity = 10; // integrated spot density
+      required float intensity = 10; // integrated spot density
       optional float background = 11; // background determined in fit
-      optional float sigma = 12; // half width at half height in location units
+      optional float width = 12; // peak width at half height in location units
+         // for asymetric peaks, calculate the width as the square root of the 
+         // product of the widths of the long and short axes
+
+      optional float a = 13; // shape of the peak: width of the long axis 
+         // divided by width of the short axis
+      
+      optional float theta = 14; // rotation of assymetric peak, only used
+         // when fitmode == TWOAXISANDTHETA
+
 
       optional int32 flag = 6; // flag to categorize spots. Implementation specific
 
@@ -84,16 +93,6 @@ message SpotList {
       optional int32 x_position = 107;
       optional int32 y_position = 108;
 
-      // parameters determined during fit
-      // BO: I am not sure what these all mean and waht their units are
-      optional float height = 110;
-      optional float width = 111;
-      optional float a = 112; // only use with fitmode == ONEAXIS
-      optional float ax = 113;
-      optional float ay = 114;
-      optional float phi = 115;
-      optional float bg = 116;
-      
       // These ids can be used in your own .proto derived from this one
       extensions 1500 to 2047;
 
