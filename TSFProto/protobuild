@@ -1,2 +1,3 @@
 protoc -I=src/ --java_out=build src/TSFProto.proto
+jar cf dist/TSFProto.jar -C build .
 protoc -I=src/ --cpp_out=buildcpp src/TSFProto.proto
