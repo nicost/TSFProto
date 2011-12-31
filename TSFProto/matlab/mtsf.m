@@ -23,6 +23,7 @@ classdef mtsf
         pixelSize
         spotList
         fileName
+        fi
     end
     
     methods
@@ -30,66 +31,68 @@ classdef mtsf
         % file
         function mt = mtsf(fileName)
             mt.fileName = fileName;
-            fi = java.io.FileInputStream(mt.fileName);
-            res = javaMethod('parseFrom', 'edu.ucsf.tsf.TaggedSpotsProtos$SpotList', fi);
-            mt.spotList = res.getSpotList();
-            mt.nrSpots = mt.spotList.size;
-            if (res.hasApplicationId)
-                mt.applicationId = res.getApplicationId;
+            mt.fi = java.io.FileInputStream(mt.fileName);
+            mt.spotList = javaMethod('parseDelimitedFrom', 'edu.ucsf.tsf.TaggedSpotsProtos$SpotList', mt.fi);
+            
+            if (mt.spotList.hasNrSpots)
+                mt.nrSpots = mt.spotList.getNrSpots;
             end
-            if (res.hasBoxSize)
-                mt.boxSize = res.getBoxSize;
+            if (mt.spotList.hasApplicationId)
+                mt.applicationId = mt.spotList.getApplicationId;
             end
-            if (res.hasFilepath)
-                mt.imageFileName = char(res.getFilepath);
+            if (mt.spotList.hasBoxSize)
+                mt.boxSize = mt.spotList.getBoxSize;
             end
-            if (res.hasFitMode)
-                if (res.getFitMode == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$SpotList$FitMode', 0))
+            if (mt.spotList.hasFilepath)
+                mt.imageFileName = char(mt.spotList.getFilepath);
+            end
+            if (mt.spotList.hasFitMode)
+                if (mt.spotList.getFitMode == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$FitMode', 0))
                     mt.fitMode = 'One Axis';                       
                 end
-                if (res.getFitMode == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$SpotList$FitMode', 1))
+                if (mt.spotList.getFitMode == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$FitMode', 1))
                     mt.fitMode = 'Two Axis';                       
                 end
-                if (res.getFitMode == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$SpotList$FitMode', 2))
+                if (mt.spotList.getFitMode == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$FitMode', 2))
                     mt.fitMode = 'Two Axis and Theta';                       
                 end
             end
-            if (res.hasIntensityUnits)
-                if (res.getIntensityUnits == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$SpotList$IntensityUnits', 0))
+            if (mt.spotList.hasIntensityUnits)
+                if (mt.spotList.getIntensityUnits == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$IntensityUnits', 0))
                     mt.intensityUnits = 'Counts';
-                elseif (res.getIntensityUnits == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$SpotList$IntensityUnits', 1))
+                elseif (mt.spotList.getIntensityUnits == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$IntensityUnits', 1))
                     mt.intensityUnits = 'Photons';
                 end
             end
-            if (res.hasLocationUnits)
-                if (res.getLocationUnits == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$SpotList$LocationUnits', 0))
+            if (mt.spotList.hasLocationUnits)
+                if (mt.spotList.getLocationUnits == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$LocationUnits', 0))
                     mt.locationUnits = 'nm';
-                elseif (res.getLocationUnits == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$SpotList$LocationUnits', 1))
+                elseif (mt.spotList.getLocationUnits == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$LocationUnits', 1))
                     mt.locationUnits = 'pixels';
-                elseif (res.getLocationUnits == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$SpotList$LocationUnits', 2))
+                elseif (mt.spotList.getLocationUnits == javaMethod('valueOf','edu.ucsf.tsf.TaggedSpotsProtos$LocationUnits', 2))
                     mt.locationUnits = 'um';
                 end
             end
-            if (res.hasNrChannels)
-                mt.nrChannels = res.getNrChannels;
+            if (mt.spotList.hasNrChannels)
+                mt.nrChannels = mt.spotList.getNrChannels;
             end
-            if (res.hasNrFrames)
-                mt.nrFrames = res.getNrFrames;
+            if (mt.spotList.hasNrFrames)
+                mt.nrFrames = mt.spotList.getNrFrames;
             end
-            if (res.hasNrPixelsX)
-                mt.nrPixelsX = res.getNrPixelsX;
+            if (mt.spotList.hasNrPixelsX)
+                mt.nrPixelsX = mt.spotList.getNrPixelsX;
             end
-            if (res.hasNrPixelsY)
-                mt.nrPixelsY = res.getNrPixelsY;
+            if (mt.spotList.hasNrPixelsY)
+                mt.nrPixelsY = mt.spotList.getNrPixelsY;
             end
-            if (res.hasNrPos)
-                mt.nrPos = res.getNrPos;
+            if (mt.spotList.hasNrPos)
+                mt.nrPos = mt.spotList.getNrPos;
             end
-            if (res.hasNrSlices)
-                mt.nrSlices = res.getNrSlices;
+            if (mt.spotList.hasNrSlices)
+                mt.nrSlices = mt.spotList.getNrSlices;
             end
-            if (res.hasPixelSize)
-                mt.pixelSize = res.getPixelSize;
+            if (mt.spotList.hasPixelSize)
+                mt.pixelSize = mt.spotList.getPixelSize;
             end
             
             
@@ -101,6 +104,23 @@ classdef mtsf
         % Performance of these functions is quite poor: calling the getX
         % function on a dataset with 550,000 took 360 seconds. 
         % Calling getXY on the same dataset took 745 seconds.
+        
+        % 
+        function spot = getNextSpot(mt)
+            spot = zeros(1,10);
+            sp = javaMethod('parseDelimitedFrom', 'edu.ucsf.tsf.TaggedSpotsProtos$Spot', mt.fi);
+            spot(1, 1) = sp.getMolecule;
+            spot(1, 2) = sp.getChannel;
+            spot(1, 3) = sp.getFrame;
+            spot(1, 4) = sp.getSlice;
+            spot(1, 5) = sp.getPos;
+            spot(1, 6) = sp.getX;
+            spot(1, 7) = sp.getY;
+            spot(1, 8) = sp.getIntensity;
+            spot(1, 9) = sp.getBackground;
+            spot(1, 10) = sp.getWidth;
+            
+        end
         
         % Retrieve x values in a 1D array of size (nrSpots, 1)
         function  x = getX(mt) 
