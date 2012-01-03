@@ -2,3 +2,5 @@ protoc -I=src/ --java_out=build src/TSFProto.proto
 javac -sourcepath build -classpath dist/gproto.jar build/edu/ucsf/tsf/TaggedSpotsProtos.java
 jar cf dist/TSFProto.jar -C build .
 protoc -I=src/ --cpp_out=buildcpp src/TSFProto.proto
+g++ -c buildcpp/TSFProto.pb.cc -o buildcpp/libTSFProto.o
+ar cru buildcpp/libTSFPProto.a buildcpp/TSFProto.o /usr/local/lib/libprotobuf.a
