@@ -6,6 +6,7 @@
  * License: BSD-clause3: http://www.opensource.org/licenses/BSD-3-Clause
  *
  */
+
 #include "mex.h"
 #include <stdint.h>
 #include <vector>
@@ -65,7 +66,6 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    }
 
    mwSize NStructElems = mxGetNumberOfElements(prhs[1]);
-
    for (mwSize i = 0; i < NStructElems; i++) {
       tmp = mxGetFieldByNumber(prhs[1], 0, i);
       if (tmp != NULL && mxIsChar(tmp)) {
@@ -74,31 +74,48 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    }
 
    // Create parser object
-   std::vector<std::string> v;
-   v.push_back("X");
-   TSFParser tsfP(&ifs, v);
+   TSFParser tsfP(&ifs, fieldNames);
 
-   uint64_t nrSpots = tsfP.GetNrSpotsFromSpotList();;
 
    // Set first output argument (field names)
-   // TODO: actually check these with the first spot
-   plhs[0] = mxCreateCellMatrix(1, NStructElems);
-   for (int i=0; i < fieldNames.size(); i++) {
+   std::vector<std::string> fieldsFound = tsfP.GetFields();
+   plhs[0] = mxCreateCellMatrix(1, fieldsFound.size());
+   for (int i=0; i < fieldsFound.size(); i++) {
       char *str[1];
-      str[0] = (char *) malloc(sizeof(fieldNames[i].c_str()));
-      strcpy(str[0], fieldNames[i].c_str());
+      str[0] = (char *) malloc(sizeof(fieldsFound[i].c_str()));
+      strcpy(str[0], fieldsFound[i].c_str());
       mxSetCell(plhs[0], i, mxCreateCharMatrixFromStrings(1, (const char **) str));
    }
 
+   uint64_t nrSpots = tsfP.GetNrSpotsFromSpotList();;
+
    if (nrSpots > 0) {
-      plhs[1] = mxCreateNumericMatrix(nrSpots, 1, mxDOUBLE_CLASS, mxREAL);
+      // nrSpots known in advance, this is most efficient
+      plhs[1] = mxCreateNumericMatrix(fieldsFound.size(), nrSpots, mxDOUBLE_CLASS, mxREAL);
       double * pointer = mxGetPr(plhs[1]);
       for (uint64_t i=0; i < nrSpots; i++) {
-         tsfP.GetNextSpot(&pointer[i]);
+         tsfP.GetNextSpot(&pointer[i * fieldsFound.size()]);
       }
+   } else {
+      // nrSpots is not known in advance.  This is less efficient
+      uint64_t counter = 0;
+      std::vector<double*> p;
+      p.reserve(264000);
+      bool success = true;
+      while (success) {
+         p.push_back((double*) mxCalloc(fieldsFound.size(), sizeof(double)));
+         success = tsfP.GetNextSpot(p.back());
+         counter++;
+      }
+      plhs[1] = mxCreateNumericMatrix(fieldsFound.size(), counter, mxDOUBLE_CLASS, mxREAL);
+      double* output = mxGetPr(plhs[1]);
+      for (uint64_t i=0; i < counter; i++) {
+         memcpy(output + i * fieldsFound.size(), p[i], fieldsFound.size() * sizeof(double));
+      }
+      // TODO: mirror the array
    }
 
-   /*
+   /* useful to print state of variables
    std::ostringstream os;
    os << "Nr of Spots: " << nrSpots;
    mexErrMsgIdAndTxt("MATLAB:mexcpp:nargin", os.str().c_str());
