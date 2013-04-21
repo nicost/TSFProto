@@ -1,0 +1,12 @@
+# File containing commands that I used to build the google protocol buffer
+# code.  Use this as you see fit, it is unlikely to execute directly without 
+# error on your system.  First build the C code (using ./configure, make, make check,
+# make install), then follow the following code to build gproto.jar.
+# If you use Maven, use that instead.
+cd java
+protoc --java_out=src/main/java -I ../src ../src/google/protobuf/descriptor.proto
+cd src/main/java
+mkdir build
+javac -source 1.5 -target 1.5  com/google/protobuf/*.java -d build
+cd build
+jar cf ../gproto.jar *
