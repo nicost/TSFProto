@@ -1,5 +1,5 @@
 tsftrans: tsftrans.cpp TSFUtils.cpp
-	g++ -lprotobuf -o tsftrans tsftrans.cpp
+	g++ -O2 -lprotobuf -lTSFProto -o tsftrans tsftrans.cpp
 
 all: tstrans
 
