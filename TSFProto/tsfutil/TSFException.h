@@ -19,7 +19,7 @@ class TSFException: public std::exception
 
    TSFException(std::string msg)
    {
-      std::string msg_ = msg;
+     msg_ = msg;
    };
 
    ~TSFException() throw () {};

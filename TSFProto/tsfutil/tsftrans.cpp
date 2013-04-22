@@ -64,6 +64,25 @@ int main (int argc, const char*  argv[])
       return 1;
    }
 
+
+   std::ifstream ifs;
+
+   try {
+      if (inputBinary)
+      {
+         ifs.open(inputFile, std::ios_base::in | std::ios_base::binary);
+         TSF::SpotList sl = TSFUtils::GetHeaderBinary(&ifs);
+      }
+   } catch (TSFException ex) 
+   {
+      std::cout << ex.getMessage().c_str() << std::endl;
+      return 1;
+   } catch (...)
+   {
+      std::cout << "Some exceptions occurred.  Exciting now...\n";
+   }
+
+
    return 0;
 }
 

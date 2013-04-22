@@ -4,4 +4,4 @@ tsftrans: tsftrans.cpp TSFUtils.cpp
 all: tstrans
 
 clean:
-	rm tstrans
+	rm tsftrans || echo ""
