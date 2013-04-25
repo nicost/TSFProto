@@ -66,12 +66,24 @@ int main (int argc, const char*  argv[])
 
 
    std::ifstream ifs;
+   std::ofstream ofs;
+   TSF::SpotList sl;
 
    try {
       if (inputBinary)
       {
          ifs.open(inputFile, std::ios_base::in | std::ios_base::binary);
-         TSF::SpotList sl = TSFUtils::GetHeaderBinary(&ifs);
+         sl = TSFUtils::GetHeaderBinary(&ifs);
+      }
+      if (sl.has_name())
+      {
+         std::cout << "Name: " << sl.name() << "\n";
+      }
+      if (outputText)
+      {
+         // truncate and open in text more
+         ofs.open(outputFile, std::ios_base::out | std::ios_base::trunc);
+         TSFUtils::WriteHeaderText(&ofs, sl);
       }
    } catch (TSFException ex) 
    {
@@ -81,6 +93,8 @@ int main (int argc, const char*  argv[])
    {
       std::cout << "Some exceptions occurred.  Exciting now...\n";
    }
+
+
 
 
    return 0;

@@ -21,26 +21,38 @@ class TSFUtils
    public:
 
       static TSF::SpotList GetHeaderBinary(std::ifstream* ifs) throw (TSFException);
-      static TSF::SpotList GetHeaderText(std::ifstream ifs);
-      static void WriteHeaderBinary(std::ofstream ofs, TSF::SpotList);
-      static void WriteHeaderText(std::ofstream ofs, TSF::SpotList);
+      static TSF::SpotList GetHeaderText(std::ifstream* ifs);
+      static void WriteHeaderBinary(std::ofstream* ofs, TSF::SpotList);
+      static void WriteHeaderText(std::ofstream* ofs, TSF::SpotList);
 
-      static TSF::Spot GetSpotBinary(std::ifstream ifs);
-
-      static void WriteSpotBinary(std::ofstream of);
+      static TSF::Spot GetSpotBinary(std::ifstream* ifs);
+      static void WriteSpotBinary(std::ofstream* of);
 
       union int32char {
          char ch[4];
-         uint32_t i;
+         int32_t i;
       };
 
       union int64char {
          char ch[8];
-         uint64_t i;
+         int64_t i;
       };
 
-      static uint32_t ReadInt32(std::istream *ifs) throw (TSFException);
-      static uint64_t ReadInt64(std::istream *ifs) throw (TSFException);
+      static int32_t ReadInt32(std::istream *ifs) throw (TSFException);
+      static int64_t ReadInt64(std::istream *ifs) throw (TSFException);
+      static int32_t SwapInt32(int32_t val);
+      static int64_t SwapInt64(int64_t val);
+      inline
+      static bool IsBigEndian(void) 
+      {
+          union {
+              uint32_t i;
+              char c[4];
+          } b = {0x01020304};
+
+          return b.c[0] == 1; 
+      };
+
 };
 
 #endif
