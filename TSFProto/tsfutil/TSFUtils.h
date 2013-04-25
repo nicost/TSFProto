@@ -11,8 +11,10 @@
 #ifndef TSFUTILS_H
 #define TSFUTILS_H
 
-#include "../buildcpp/TSFProto.pb.h"
+#include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <iostream>
+#include <vector>
+#include "../buildcpp/TSFProto.pb.h"
 #include "TSFException.h"
 
 
@@ -20,14 +22,24 @@ class TSFUtils
 {
    public:
 
-      static TSF::SpotList GetHeaderBinary(std::ifstream* ifs) throw (TSFException);
-      static TSF::SpotList GetHeaderText(std::ifstream* ifs);
-      static void WriteHeaderBinary(std::ofstream* ofs, TSF::SpotList);
-      static void WriteHeaderText(std::ofstream* ofs, TSF::SpotList);
+      static int GetHeaderBinary(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFException);
+      static int GetHeaderText(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFException);
+      static void WriteHeaderBinary(std::ofstream* ofs, TSF::SpotList* sl) throw (TSFException);
+      static void WriteHeaderText(std::ofstream* ofs, TSF::SpotList* sl) throw (TSFException);
 
-      static TSF::Spot GetSpotBinary(std::ifstream* ifs);
-      static void WriteSpotBinary(std::ofstream* of);
+      static int GetSpotBinary(std::ifstream* ifs,
+          google::protobuf::io::CodedInputStream* codedInput, TSF::Spot* spot) throw (TSFException);
+      static int GetSpotText(std::ifstream* ifs, TSF::Spot* spot);
+      static void WriteSpotBinary(std::ofstream* of, TSF::Spot* spot);
+      static void GetSpotFields(TSF::Spot* spot, std::vector<std::string>& fields) throw (TSFException);
+      static void WriteSpotFields(std::ofstream* of, std::vector<std::string>& fields) throw (TSFException);
+      static void WriteSpotText(std::ofstream* of, TSF::Spot* spot, std::vector<std::string>& fields);
 
+      static const int GOOD = 0;
+      static const int BAD = 1;
+      static const int NOMESSAGEFOUND = 2;
+
+      // Following are function used internally
       union int32char {
          char ch[4];
          int32_t i;
