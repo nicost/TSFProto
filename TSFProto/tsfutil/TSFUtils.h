@@ -32,7 +32,9 @@ class TSFUtils
           TSF::Spot* spot) throw (TSFException);
       static int GetSpotText(std::ifstream* ifs, TSF::Spot* spot);
       static void WriteSpotBinary(std::ofstream* of, TSF::Spot* spot);
-      static void GetSpotFields(TSF::Spot* spot, std::vector<std::string>& fields) 
+      static void ExtractSpotFields(TSF::Spot* spot, std::vector<std::string>& fields) 
+         throw (TSFException);
+      static void GetSpotFields(std::ifstream* ifs, std::vector<std::string>& fields) 
          throw (TSFException);
       static void WriteSpotFields(std::ofstream* of, std::vector<std::string>& fields) 
          throw (TSFException);

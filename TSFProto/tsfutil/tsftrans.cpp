@@ -107,7 +107,7 @@ int main (int argc, const char*  argv[])
             int ret = TSFUtils::GetSpotBinary(codedInput, spot);
             std::vector<std::string> fields;
 
-            TSFUtils::GetSpotFields(spot, fields);
+            TSFUtils::ExtractSpotFields(spot, fields);
             TSFUtils::WriteSpotFields(&ofs, fields);
             TSFUtils::WriteSpotText(&ofs, spot, fields);
 
@@ -132,6 +132,8 @@ int main (int argc, const char*  argv[])
          ifs.open(inputFile, std::ios_base::in);
          
          TSFUtils::GetHeaderText(&ifs, sl);
+         std::vector<std::string> fields;
+         TSFUtils::GetSpotFields(&ifs, fields);
 
          if (outputText)
          {
@@ -139,6 +141,7 @@ int main (int argc, const char*  argv[])
             // TODO: test for existence of file and warn user
             ofs.open(outputFile, std::ios_base::out | std::ios_base::trunc);
             TSFUtils::WriteHeaderText(&ofs, sl);
+            TSFUtils::WriteSpotFields(&ofs, fields);
          }
          ifs.close();
          ofs.close();
@@ -158,9 +161,6 @@ int main (int argc, const char*  argv[])
    }
 
    delete ls;
-
-
-
 
    return 0;
 }

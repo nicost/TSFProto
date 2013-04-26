@@ -19,59 +19,6 @@
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/wire_format.h>
 
-int32_t TSFUtils::SwapInt32(int32_t val)
-{
-    val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF ); 
-    return (val << 16) | ((val >> 16) & 0xFFFF);
-}
-
-int64_t TSFUtils::SwapInt64(int64_t val)
-{
-    val = ((val << 8) & 0xFF00FF00FF00FF00ULL ) | ((val >> 8) & 0x00FF00FF00FF00FFULL );
-    val = ((val << 16) & 0xFFFF0000FFFF0000ULL ) | ((val >> 16) & 0x0000FFFF0000FFFFULL );
-    return (val << 32) | ((val >> 32) & 0xFFFFFFFFULL);
-}
-
-// Reads a signed 32bit big endian int from a stream and converts to little endian 
-// if needed
-int32_t TSFUtils::ReadInt32(std::istream *ifs) throw (TSFException)
-{
-   int32char tmp;
-   ifs->read(tmp.ch, 4);
-   if (!IsBigEndian())
-   {
-      tmp.i = SwapInt32(tmp.i);
-   }
-   return tmp.i;
-}
-
-// Reads a signed 64bit big endian int from a stream and converts to little endian 
-// if needed
-int64_t TSFUtils::ReadInt64(std::istream *ifs) throw (TSFException)
-{
-   int64char tmp;
-   ifs->read(tmp.ch, 8);
-   if (!IsBigEndian())
-   {
-      tmp.i = SwapInt64(tmp.i);
-   }
-   return tmp.i;
-}
-
-std::vector<std::string> &TSFUtils::split(const std::string &s, char delim, std::vector<std::string> &elems) {
-    std::stringstream ss(s);
-    std::string item;
-    while (std::getline(ss, item, delim)) {
-        elems.push_back(item);
-    }
-    return elems;
-}
-
-std::vector<std::string> TSFUtils::split(const std::string &s, char delim) {
-    std::vector<std::string> elems;
-    split(s, delim, elems);
-    return elems;
-}
 
 /**
  * Reads the SpotList (Header info) from a tsf file
@@ -231,7 +178,7 @@ int TSFUtils::GetHeaderText(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFExc
                      const google::protobuf::EnumDescriptor* ed = fd->enum_type();
                      const google::protobuf::EnumValueDescriptor* evd  =
                         ed->FindValueByName(keyValue[1]);
-                     //if (evd != NULL)
+                     if (evd != NULL)
                         slReflection->SetEnum(sl, fd, evd);
                   }
                   break;
@@ -364,7 +311,7 @@ int TSFUtils::GetSpotText(std::ifstream* ifs, TSF::Spot* spot)
  * Inspects Spot spot and discovers the field names contained in the spot
  * Outputs a vector with field names
  */
-void TSFUtils::GetSpotFields(TSF::Spot* spot, std::vector<std::string>& fields) throw (TSFException)
+void TSFUtils::ExtractSpotFields(TSF::Spot* spot, std::vector<std::string>& fields) throw (TSFException)
 {
    if (spot == NULL)
    {
@@ -382,40 +329,25 @@ void TSFUtils::GetSpotFields(TSF::Spot* spot, std::vector<std::string>& fields) 
       }
    }
 
-
-   /*
-
-   fields.push_back("molecule");
-   fields.push_back("channel");
-   fields.push_back("frame");
-   if (spot->has_slice())
-      fields.push_back("slice");
-   if (spot->has_pos())
-      fields.push_back("pos");
-   if (spot->has_x())
-      fields.push_back("x");
-   if (spot->has_y())
-      fields.push_back("y");
-   if (spot->has_z())
-      fields.push_back("z");
-   if (spot->has_intensity())
-      fields.push_back("intensity");
-   if (spot->has_background())
-      fields.push_back("background");
-   if (spot->has_width())
-      fields.push_back("width");
-   if (spot->has_a())
-      fields.push_back("a");
-   if (spot->has_theta())
-      fields.push_back("theta");
-   if (spot->has_x_precision())
-      fields.push_back("x_precision");
-   if (spot->has_x_position())
-      fields.push_back("x_position");
-   if (spot->has_y_position())
-      fields.push_back("y_position");
-*/
 }
+
+/**
+ * Reads a line from the file ifs and extracts field names
+ * ifs needs to be open and readable
+ */
+void TSFUtils::GetSpotFields(std::ifstream* ifs, std::vector<std::string>& fields) 
+         throw (TSFException)
+{
+   if (!ifs->is_open())
+   {
+      throw TSFException ("Output file is not open\n");
+   }
+
+   std::string line;
+   std::getline(*ifs, line);
+   fields = split(line, '\t');
+}
+
 
 /**
  * Writes the field names contained in vector fields to the ofstream of.
@@ -485,4 +417,56 @@ void TSFUtils::WriteSpotText(std::ofstream* of, TSF::Spot* spot, std::vector<std
    *of << "\n";
 }
 
+int32_t TSFUtils::SwapInt32(int32_t val)
+{
+    val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF ); 
+    return (val << 16) | ((val >> 16) & 0xFFFF);
+}
 
+int64_t TSFUtils::SwapInt64(int64_t val)
+{
+    val = ((val << 8) & 0xFF00FF00FF00FF00ULL ) | ((val >> 8) & 0x00FF00FF00FF00FFULL );
+    val = ((val << 16) & 0xFFFF0000FFFF0000ULL ) | ((val >> 16) & 0x0000FFFF0000FFFFULL );
+    return (val << 32) | ((val >> 32) & 0xFFFFFFFFULL);
+}
+
+// Reads a signed 32bit big endian int from a stream and converts to little endian 
+// if needed
+int32_t TSFUtils::ReadInt32(std::istream *ifs) throw (TSFException)
+{
+   int32char tmp;
+   ifs->read(tmp.ch, 4);
+   if (!IsBigEndian())
+   {
+      tmp.i = SwapInt32(tmp.i);
+   }
+   return tmp.i;
+}
+
+// Reads a signed 64bit big endian int from a stream and converts to little endian 
+// if needed
+int64_t TSFUtils::ReadInt64(std::istream *ifs) throw (TSFException)
+{
+   int64char tmp;
+   ifs->read(tmp.ch, 8);
+   if (!IsBigEndian())
+   {
+      tmp.i = SwapInt64(tmp.i);
+   }
+   return tmp.i;
+}
+
+std::vector<std::string> &TSFUtils::split(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+    return elems;
+}
+
+std::vector<std::string> TSFUtils::split(const std::string &s, char delim) {
+    std::vector<std::string> elems;
+    split(s, delim, elems);
+    return elems;
+}
