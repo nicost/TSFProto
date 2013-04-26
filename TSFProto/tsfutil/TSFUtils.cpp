@@ -136,64 +136,14 @@ int TSFUtils::GetHeaderText(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFExc
             // strip whitespace from value
             std::stringstream s(keyValue[1]);
             s >> keyValue[1];
-            switch (fd->type() ) 
-            {
-               case google::protobuf::FieldDescriptor::TYPE_STRING:
-                     slReflection->SetString(sl, fd, keyValue[1]);
-                  break;
-               case google::protobuf::FieldDescriptor::TYPE_INT32:
-                  {
-                     std::stringstream ss(keyValue[1]);
-                     int32_t val;
-                     ss >> val;
-                     slReflection->SetInt32(sl, fd, val);
-                  }
-                  break;
-               case google::protobuf::FieldDescriptor::TYPE_INT64:
-                  {
-                     std::stringstream ss(keyValue[1]);
-                     int64_t val;
-                     ss >> val;
-                     slReflection->SetInt64(sl, fd, val);
-                  }
-                  break;
-               case google::protobuf::FieldDescriptor::TYPE_FLOAT:
-                  {
-                     std::stringstream ss(keyValue[1]);
-                     float val;
-                     ss >> val;
-                     slReflection->SetFloat(sl, fd, val);
-                  }
-                  break;
-               case google::protobuf::FieldDescriptor::TYPE_BOOL:
-                  {
-                     std::stringstream ss(keyValue[1]);
-                     bool val;
-                     ss >> val;
-                     slReflection->SetBool(sl, fd, val);
-                  }
-                  break;
-               case google::protobuf::FieldDescriptor::TYPE_ENUM:
-                  {
-                     const google::protobuf::EnumDescriptor* ed = fd->enum_type();
-                     const google::protobuf::EnumValueDescriptor* evd  =
-                        ed->FindValueByName(keyValue[1]);
-                     if (evd != NULL)
-                        slReflection->SetEnum(sl, fd, evd);
-                  }
-                  break;
-               default:
-                  throw TSFException("While parsing the header (spotList) a type was encountered that is not (yet) supported");
-
-            }
+            InsertByReflection(slReflection, sl, fd, keyValue[1]);
          }
-
       }
-
    }
 
    return GOOD;
 }
+
 
 void TSFUtils::WriteHeaderBinary(std::ofstream* ofs, TSF::SpotList* spotList) throw (TSFException)
 {
