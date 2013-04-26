@@ -58,11 +58,29 @@ int64_t TSFUtils::ReadInt64(std::istream *ifs) throw (TSFException)
    return tmp.i;
 }
 
+std::vector<std::string> &TSFUtils::split(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+    return elems;
+}
+
+std::vector<std::string> TSFUtils::split(const std::string &s, char delim) {
+    std::vector<std::string> elems;
+    split(s, delim, elems);
+    return elems;
+}
+
 /**
  * Reads the SpotList (Header info) from a tsf file
  * Expects a freshly opened stream, i.e. the filepointer should be at the beginning
  * Reads the magic number and offset to the SpotList
- * Reads the SpotList and return
+ * Reads and fills the SpotList
+ * SpotList should point to a valid SpotList data structure
+ * returns GOOD on succes, will throw a TSFException otherwise
+ * 
  */
 int TSFUtils::GetHeaderBinary(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFException)
 {
@@ -133,8 +151,100 @@ int TSFUtils::GetHeaderBinary(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFE
 }
 
 
+/**
+ * Reads header from a text version of the tsf file
+ * Header is in the form of key: value\tkey: value, etc...
+ * If SpotList was not allocated, it will be created here
+ * It is the responsibility of the caller to delete spotList
+ */
 int TSFUtils::GetHeaderText(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFException)
 {
+   if (!ifs->is_open())
+   {
+      throw TSFException("Input file was not opened correctly.  Does it exist?");
+   }
+   if (sl == NULL)
+   {
+      sl = new TSF::SpotList();
+   }
+
+   const google::protobuf::Descriptor* slDescriptor = sl->GetDescriptor();
+   const google::protobuf::Reflection* slReflection = sl->GetReflection();
+
+   std::string line;
+   std::getline(*ifs, line);
+   std::vector<std::string> tokens = split(line, '\t');
+
+   for (std::vector<std::string>::iterator it = tokens.begin(); 
+         it != tokens.end(); ++it)
+   {
+      std::vector<std::string> keyValue = split(*it, ':');
+      if (keyValue.size() == 2)
+      {
+
+         const google::protobuf::FieldDescriptor* fd = 
+            slDescriptor->FindFieldByName(keyValue[0]);
+         if (fd != NULL)
+         {
+            // strip whitespace from value
+            std::stringstream s(keyValue[1]);
+            s >> keyValue[1];
+            switch (fd->type() ) 
+            {
+               case google::protobuf::FieldDescriptor::TYPE_STRING:
+                     slReflection->SetString(sl, fd, keyValue[1]);
+                  break;
+               case google::protobuf::FieldDescriptor::TYPE_INT32:
+                  {
+                     std::stringstream ss(keyValue[1]);
+                     int32_t val;
+                     ss >> val;
+                     slReflection->SetInt32(sl, fd, val);
+                  }
+                  break;
+               case google::protobuf::FieldDescriptor::TYPE_INT64:
+                  {
+                     std::stringstream ss(keyValue[1]);
+                     int64_t val;
+                     ss >> val;
+                     slReflection->SetInt64(sl, fd, val);
+                  }
+                  break;
+               case google::protobuf::FieldDescriptor::TYPE_FLOAT:
+                  {
+                     std::stringstream ss(keyValue[1]);
+                     float val;
+                     ss >> val;
+                     slReflection->SetFloat(sl, fd, val);
+                  }
+                  break;
+               case google::protobuf::FieldDescriptor::TYPE_BOOL:
+                  {
+                     std::stringstream ss(keyValue[1]);
+                     bool val;
+                     ss >> val;
+                     slReflection->SetBool(sl, fd, val);
+                  }
+                  break;
+               case google::protobuf::FieldDescriptor::TYPE_ENUM:
+                  {
+                     const google::protobuf::EnumDescriptor* ed = fd->enum_type();
+                     const google::protobuf::EnumValueDescriptor* evd  =
+                        ed->FindValueByName(keyValue[1]);
+                     //if (evd != NULL)
+                        slReflection->SetEnum(sl, fd, evd);
+                  }
+                  break;
+               default:
+                  throw TSFException("While parsing the header (spotList) a type was encountered that is not (yet) supported");
+
+            }
+         }
+
+      }
+
+   }
+
    return GOOD;
 }
 
@@ -159,49 +269,59 @@ void TSFUtils::WriteHeaderText(std::ofstream* ofs, TSF::SpotList* spotList) thro
    std::ostringstream headerOut;
    std::string tab = "\t";
 
-   if (spotList->has_application_id()) 
-      headerOut << "application_id: " << spotList->application_id() << tab;
-   if (spotList->has_name())
-      headerOut << "name: " << spotList->name() << tab;
-   if (spotList->has_filepath())
-      headerOut << "filepath: " << spotList->filepath() << tab;
-   if (spotList->has_uid())
-      headerOut << "uid: " << spotList->uid() << tab;
-   if (spotList->has_nr_pixels_x())
-      headerOut << "nr_pixels_x: " << spotList->nr_pixels_x() << tab;
-   if (spotList->has_nr_pixels_y())
-      headerOut << "nr_pixels_y: " << spotList->nr_pixels_y() << tab;
-   if (spotList->has_pixel_size())
-      headerOut << "pixel_size: " << spotList->pixel_size() << tab;
-   if (spotList->has_nr_spots())
-      headerOut << "nr_spots() " << spotList->nr_spots() << tab;
-   if (spotList->has_box_size())
-      headerOut << "box_size: " << spotList->box_size() << tab;
-   if (spotList->has_nr_channels())
-      headerOut << "nr_channels: " << spotList->nr_channels() << tab;
-   if (spotList->has_nr_frames())
-      headerOut << "nr_frames: " << spotList->nr_frames() << tab;
-   if (spotList->has_nr_slices())
-      headerOut << "nr_slices: " << spotList->nr_slices() << tab;
-   if (spotList->has_nr_pos())
-      headerOut << "nr_pos: " << spotList->nr_pos() << tab;
-   // TODO: resolve enums to text
-   if (spotList->has_location_units())
-      headerOut << "location_units: " << spotList->location_units() << tab;
-   if (spotList->has_intensity_units())
-      headerOut << "intensity_units: " << spotList->intensity_units() << tab;
-   if (spotList->has_fit_mode())
-      headerOut << "fit_mode: " << spotList->fit_mode() << tab;
-   if (spotList->has_is_track())
-      headerOut << "is_track: " << spotList->is_track();
+   const google::protobuf::Descriptor* spotListDescriptor = spotList->GetDescriptor();
+   const google::protobuf::Reflection* spotListReflection = spotList->GetReflection();
+   for (int i = 0; i < spotListDescriptor->field_count(); i++) 
+   {
+      const google::protobuf::FieldDescriptor* myField = spotListDescriptor->field(i);
+      if (spotListReflection->HasField(*spotList, myField))
+      {
+         switch (myField->type() )
+         {
+            case google::protobuf::FieldDescriptor::TYPE_STRING:
+               headerOut << myField->name() << ": " << 
+                  spotListReflection->GetString(*spotList, myField) << tab;
+               break;
+            case google::protobuf::FieldDescriptor::TYPE_INT32:
+               headerOut << myField->name() << ": " << 
+                  spotListReflection->GetInt32(*spotList, myField) << tab;
+               break;
+            case google::protobuf::FieldDescriptor::TYPE_INT64:
+               headerOut << myField->name() << ": " << 
+                  spotListReflection->GetInt64(*spotList, myField) << tab;
+               break;
+            case google::protobuf::FieldDescriptor::TYPE_FLOAT:
+               headerOut << myField->name() << ": " << 
+                  spotListReflection->GetFloat(*spotList, myField) << tab;
+               break;
+            case google::protobuf::FieldDescriptor::TYPE_BOOL:
+               headerOut << myField->name() << ": " << 
+                  spotListReflection->GetBool(*spotList, myField) << tab;
+               break;
+            case google::protobuf::FieldDescriptor::TYPE_ENUM:
+               {
+                  const google::protobuf::EnumValueDescriptor* enumDescriptor = 
+                     spotListReflection->GetEnum(*spotList, myField);
+
+                  headerOut << myField->name() << ": " << 
+                     enumDescriptor->name() << tab;
+                  break;
+               }
+            default:
+               throw TSFException("While parsing the header (spotList) a type was encountered that is not (yet) supported");
+         }
+      }
+   }
 
    *ofs << headerOut.str().c_str() << "\n";
 }
 
-int TSFUtils::GetSpotBinary(std::ifstream* ifs, 
-      google::protobuf::io::CodedInputStream* codedInput, TSF::Spot* spot) throw (TSFException)
+/**
+ *
+ */
+int TSFUtils::GetSpotBinary(google::protobuf::io::CodedInputStream* codedInput, 
+      TSF::Spot* spot) throw (TSFException)
 {
-
    if (spot == NULL)
    {
       throw TSFException("Programming error: spot is not pointing to an object\n");
