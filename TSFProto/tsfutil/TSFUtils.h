@@ -23,30 +23,41 @@ class TSFUtils
    public:
 
       static int GetHeaderBinary(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFException);
-      static int GetHeaderText(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFException);
-      static void WriteHeaderBinary(std::ofstream* ofs, TSF::SpotList* sl) 
-         throw (TSFException);
-      static void WriteHeaderText(std::ofstream* ofs, TSF::SpotList* sl) throw (TSFException);
-
       static int GetSpotBinary(google::protobuf::io::CodedInputStream* codedInput,
           TSF::Spot* spot) throw (TSFException);
-      static int GetSpotText(std::ifstream* ifs, TSF::Spot* spot);
-      static void WriteSpotBinary(std::ofstream* of, TSF::Spot* spot);
-      static void ExtractSpotFields(TSF::Spot* spot, std::vector<std::string>& fields) 
-         throw (TSFException);
+
+      static int GetHeaderText(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFException);
       static void GetSpotFields(std::ifstream* ifs, std::vector<std::string>& fields) 
          throw (TSFException);
+      static int GetSpotText(std::ifstream* ifs, TSF::Spot* spot, 
+            std::vector<std::string>& fields) throw (TSFException);
+
+      static void WriteHeaderBinary(std::ofstream* ofs, TSF::SpotList* sl) 
+         throw (TSFException);
+      static void WriteSpotBinary(std::ofstream* of, TSF::Spot* spot);
+
+      static void WriteHeaderText(std::ofstream* ofs, TSF::SpotList* sl) throw (TSFException);
       static void WriteSpotFields(std::ofstream* of, std::vector<std::string>& fields) 
          throw (TSFException);
       static void WriteSpotText(std::ofstream* of, TSF::Spot* spot, 
             std::vector<std::string>& fields);
 
+      static void ExtractSpotFields(TSF::Spot* spot, std::vector<std::string>& fields) 
+         throw (TSFException);
+
 
       static const int GOOD = 0;
       static const int BAD = 1;
       static const int NOMESSAGEFOUND = 2;
+      static const int EF = 3;
 
       // Following are function used internally
+      //
+
+      static void InsertByReflection(const google::protobuf::Reflection* sr,
+         google::protobuf::Message* m, const google::protobuf::FieldDescriptor* fd, 
+         std::string val);
+
       union int32char {
          char ch[4];
          int32_t i;

@@ -143,6 +143,17 @@ int main (int argc, const char*  argv[])
             TSFUtils::WriteHeaderText(&ofs, sl);
             TSFUtils::WriteSpotFields(&ofs, fields);
          }
+
+         int counter = 0;
+         while (TSFUtils::GetSpotText(&ifs, spot, fields) == TSFUtils::GOOD)
+         {
+            counter++;
+            // write the spots out
+            TSFUtils::WriteSpotText(&ofs, spot, fields);
+         }
+         std::cout << "Found " << counter << " spots\n";
+
+
          ifs.close();
          ofs.close();
 

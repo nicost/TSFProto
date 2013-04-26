@@ -301,8 +301,52 @@ int TSFUtils::GetSpotBinary(google::protobuf::io::CodedInputStream* codedInput,
 }
 
 
-int TSFUtils::GetSpotText(std::ifstream* ifs, TSF::Spot* spot)
+/**
+ * Reads a single line from a text file
+ * Splits the line based on tabs
+ * Insert data into structure spot, assuming the same order as found in 
+ * fields
+ * The text file needs to be opened and readable
+ */
+int TSFUtils::GetSpotText(std::ifstream* ifs, TSF::Spot* spot, 
+      std::vector<std::string>& fields) throw (TSFException)
 {
+   if (!ifs->is_open())
+   {
+      throw TSFException("Input file is not open in function GetSpotText");
+   }
+
+   if (spot == NULL)
+   {
+      throw TSFException("Programming error: spot pointer is null");
+   }
+
+   const google::protobuf::Descriptor* sDescriptor = spot->GetDescriptor();
+   const google::protobuf::Reflection* sReflection = spot->GetReflection();
+
+   std::string line;
+   std::getline(*ifs, line);
+   if (line.size() == 0)
+   {
+      return EF;
+   }
+
+   std::vector<std::string> tokens = split(line, '\t');
+
+   if (tokens.size() != fields.size())
+      throw TSFException("In function GetSpotText, the number of fields in the spot read from file does not match the expected number of fields");
+
+   for (uint32_t i = 0; i < fields.size(); i++)
+   {
+      const google::protobuf::FieldDescriptor* fd = 
+         sDescriptor->FindFieldByName(fields[i]);
+      if (fd != NULL)
+      {
+         std::stringstream s(tokens[i]);
+         s >> tokens[i];
+         InsertByReflection(sReflection, spot, fd, tokens[i]);
+      }
+   }
 
    return GOOD;
 }
@@ -335,8 +379,8 @@ void TSFUtils::ExtractSpotFields(TSF::Spot* spot, std::vector<std::string>& fiel
  * Reads a line from the file ifs and extracts field names
  * ifs needs to be open and readable
  */
-void TSFUtils::GetSpotFields(std::ifstream* ifs, std::vector<std::string>& fields) 
-         throw (TSFException)
+void TSFUtils::GetSpotFields(std::ifstream* ifs,
+      std::vector<std::string>& fields) throw (TSFException)
 {
    if (!ifs->is_open())
    {
@@ -346,6 +390,7 @@ void TSFUtils::GetSpotFields(std::ifstream* ifs, std::vector<std::string>& field
    std::string line;
    std::getline(*ifs, line);
    fields = split(line, '\t');
+
 }
 
 
@@ -470,3 +515,60 @@ std::vector<std::string> TSFUtils::split(const std::string &s, char delim) {
     split(s, delim, elems);
     return elems;
 }
+
+void TSFUtils::InsertByReflection(const google::protobuf::Reflection* sr, 
+      google::protobuf::Message* m, 
+      const google::protobuf::FieldDescriptor* fd, std::string val)
+{
+   switch (fd->type() ) 
+   {
+      case google::protobuf::FieldDescriptor::TYPE_STRING:
+            sr->SetString(m, fd, val);
+         break;
+      case google::protobuf::FieldDescriptor::TYPE_INT32:
+         {
+            std::stringstream ss(val);
+            int32_t num;
+            ss >> num;
+            sr->SetInt32(m, fd, num);
+         }
+         break;
+      case google::protobuf::FieldDescriptor::TYPE_INT64:
+         {
+            std::stringstream ss(val);
+            int64_t num;
+            ss >> num;
+            sr->SetInt64(m, fd, num);
+         }
+         break;
+      case google::protobuf::FieldDescriptor::TYPE_FLOAT:
+         {
+            std::stringstream ss(val);
+            float num;
+            ss >> num;
+            sr->SetFloat(m, fd, num);
+         }
+         break;
+      case google::protobuf::FieldDescriptor::TYPE_BOOL:
+         {
+            std::stringstream ss(val);
+            bool b;
+            ss >> b;
+            sr->SetBool(m, fd, b);
+         }
+         break;
+      case google::protobuf::FieldDescriptor::TYPE_ENUM:
+         {
+            const google::protobuf::EnumDescriptor* ed = fd->enum_type();
+            const google::protobuf::EnumValueDescriptor* evd  =
+               ed->FindValueByName(val);
+            if (evd != NULL)
+               sr->SetEnum(m, fd, evd);
+         }
+         break;
+      default:
+         throw TSFException("While parsing the message, a type was encountered that is not (yet) supported");
+
+   }
+}
+
