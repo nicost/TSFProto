@@ -195,7 +195,7 @@ void TSFUtils::WriteHeaderText(std::ofstream* ofs, TSF::SpotList* spotList) thro
    if (spotList->has_is_track())
       headerOut << "is_track: " << spotList->is_track();
 
-   *ofs << headerOut.str().c_str() << "\r\n";
+   *ofs << headerOut.str().c_str() << "\n";
 }
 
 int TSFUtils::GetSpotBinary(std::ifstream* ifs, 
@@ -250,6 +250,21 @@ void TSFUtils::GetSpotFields(TSF::Spot* spot, std::vector<std::string>& fields) 
    {
       throw TSFException("Programming error: Object Spot is a null pointer\n");
    }
+
+   const google::protobuf::Descriptor* spotDescriptor = spot->GetDescriptor();
+   const google::protobuf::Reflection* spotReflection = spot->GetReflection();
+   for (int i = 0; i < spotDescriptor->field_count(); i++) 
+   {
+      const google::protobuf::FieldDescriptor* myField = spotDescriptor->field(i);
+      if (spotReflection->HasField(*spot, myField))
+      {
+         fields.push_back(myField->name());
+      }
+   }
+
+
+   /*
+
    fields.push_back("molecule");
    fields.push_back("channel");
    fields.push_back("frame");
@@ -279,7 +294,7 @@ void TSFUtils::GetSpotFields(TSF::Spot* spot, std::vector<std::string>& fields) 
       fields.push_back("x_position");
    if (spot->has_y_position())
       fields.push_back("y_position");
-
+*/
 }
 
 /**
