@@ -32,9 +32,11 @@ class TSFUtils
       static int GetSpotText(std::ifstream* ifs, TSF::Spot* spot, 
             std::vector<std::string>& fields) throw (TSFException);
 
-      static void WriteHeaderBinary(std::ofstream* ofs, TSF::SpotList* sl) 
+      static void PrepBinaryFile(std::fstream* fs) throw (TSFException);
+      static void WriteSpotBinary(google::protobuf::io::CodedOutputStream* codedOutput, 
+            TSF::Spot* spot);
+      static void WriteHeaderBinary(std::fstream* fs, TSF::SpotList* sl) 
          throw (TSFException);
-      static void WriteSpotBinary(std::ofstream* of, TSF::Spot* spot);
 
       static void WriteHeaderText(std::ofstream* ofs, TSF::SpotList* sl) throw (TSFException);
       static void WriteSpotFields(std::ofstream* of, std::vector<std::string>& fields) 
@@ -72,6 +74,7 @@ class TSFUtils
       static int64_t ReadInt64(std::istream *ifs) throw (TSFException);
       static int32_t SwapInt32(int32_t val);
       static int64_t SwapInt64(int64_t val);
+      static void WriteInt64(std::ostream *ofs, int64_t i) throw (TSFException);
       inline
       static bool IsBigEndian(void) 
       {

@@ -111,15 +111,49 @@ int main (int argc, const char*  argv[])
             TSFUtils::WriteSpotFields(&ofs, fields);
             TSFUtils::WriteSpotText(&ofs, spot, fields);
 
-            int counter = 0;
+            unsigned long counter = 0;
             while (ret == TSFUtils::GOOD)
             {
                ret = TSFUtils::GetSpotBinary(codedInput, spot);
                if (ret == TSFUtils::GOOD)
                   TSFUtils::WriteSpotText(&ofs, spot, fields);
                counter++;
+               if (counter % 100000 == 0)
+               {
+                  std::cout << ".";
+                  std::cout.flush();
+               }
             }
-            std::cout << "Found " << counter << " spots\n";
+            std::cout << "Wrote " << counter << " spots\n";
+         } else if (outputBinary)
+         {
+            std::fstream fs; 
+            fs.open(outputFile, std::ios_base::out | std::ios_base::trunc | 
+                  std::ios_base::binary);
+            TSFUtils::PrepBinaryFile(&fs);
+
+            google::protobuf::io::ZeroCopyOutputStream* output =
+               new google::protobuf::io::OstreamOutputStream(&fs);
+            google::protobuf::io::CodedOutputStream* codedOutput =
+               new google::protobuf::io::CodedOutputStream(output);
+
+            unsigned long counter = 0;
+            while (TSFUtils::GetSpotBinary(codedInput, spot) == TSFUtils::GOOD)
+            {
+               TSFUtils::WriteSpotBinary(codedOutput, spot);
+               counter++;
+               if (counter % 100000 == 0)
+               {
+                  std::cout << ".";
+                  std::cout.flush();
+               }
+            }
+            delete codedOutput;
+            delete output;
+
+            std::cout << "Wrote " << counter << " spots\n";
+            TSFUtils::WriteHeaderBinary(&fs, sl);
+            fs.close();
          }
          ifs.close();
          ofs.close();
@@ -142,21 +176,49 @@ int main (int argc, const char*  argv[])
             ofs.open(outputFile, std::ios_base::out | std::ios_base::trunc);
             TSFUtils::WriteHeaderText(&ofs, sl);
             TSFUtils::WriteSpotFields(&ofs, fields);
-         }
 
-         int counter = 0;
-         while (TSFUtils::GetSpotText(&ifs, spot, fields) == TSFUtils::GOOD)
+            int counter = 0;
+            while (TSFUtils::GetSpotText(&ifs, spot, fields) == TSFUtils::GOOD)
+            {
+               counter++;
+               // write the spots out
+               TSFUtils::WriteSpotText(&ofs, spot, fields);
+            }
+            std::cout << "Found " << counter << " spots\n";
+
+
+            ifs.close();
+            ofs.close();
+         } else if (outputBinary)
          {
-            counter++;
-            // write the spots out
-            TSFUtils::WriteSpotText(&ofs, spot, fields);
+            std::fstream fs; 
+            fs.open(outputFile, std::ios_base::out | std::ios_base::trunc | 
+                  std::ios_base::binary);
+            TSFUtils::PrepBinaryFile(&fs);
+
+            google::protobuf::io::ZeroCopyOutputStream* output =
+               new google::protobuf::io::OstreamOutputStream(&fs);
+            google::protobuf::io::CodedOutputStream* codedOutput =
+               new google::protobuf::io::CodedOutputStream(output);
+
+            unsigned long counter = 0;
+            while (TSFUtils::GetSpotText(&ifs, spot, fields) == TSFUtils::GOOD)
+            {
+               TSFUtils::WriteSpotBinary(codedOutput, spot);
+               counter++;
+               if (counter % 100000 == 0)
+               {
+                  std::cout << ".";
+                  std::cout.flush();
+               }
+            }
+            delete codedOutput;
+            delete output;
+
+            std::cout << "Wrote " << counter << " spots\n";
+            TSFUtils::WriteHeaderBinary(&fs, sl);
+            fs.close();
          }
-         std::cout << "Found " << counter << " spots\n";
-
-
-         ifs.close();
-         ofs.close();
-
       }
    } catch (TSFException ex) 
    {

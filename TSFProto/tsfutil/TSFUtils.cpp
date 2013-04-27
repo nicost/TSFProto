@@ -144,8 +144,23 @@ int TSFUtils::GetHeaderText(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFExc
    return GOOD;
 }
 
+/**
+ * Preps tsf file by writing zeros to the magic number and SpotList offset
+ */
+void TSFUtils::PrepBinaryFile(std::fstream* fs) throw (TSFException)
+{
+   if (! fs->is_open() && fs->good())
+      throw TSFException("Outputfile can not be written to");
+   for (int i=0; i < 12; i++)
+      fs->put(0);
+}
 
-void TSFUtils::WriteHeaderBinary(std::ofstream* ofs, TSF::SpotList* spotList) throw (TSFException)
+/**
+ * Writes the Header (SpotList) to a tsf file
+ * The fstream need to be opened in read/write mode so that the seek back to  
+ * the beginning of the file will succeed
+ */
+void TSFUtils::WriteHeaderBinary(std::fstream* ofs, TSF::SpotList* spotList) throw (TSFException)
 {
    if (!ofs->is_open())
    {
@@ -162,30 +177,39 @@ void TSFUtils::WriteHeaderBinary(std::ofstream* ofs, TSF::SpotList* spotList) th
    // register the offset, write the length as a varint, then go back to the
    // beginning of the stream
    
-   uint64_t offset = ofs->tellp();
-
-   uint32_t length = spotList->ByteSize();
+   int64_t offset = ofs->tellp();
 
    google::protobuf::io::ZeroCopyOutputStream* output = 
       new google::protobuf::io::OstreamOutputStream(ofs);
    google::protobuf::io::CodedOutputStream* codedOutput = 
       new google::protobuf::io::CodedOutputStream(output);
 
-   codedOutput->WriteVarint32(length);
-   spotList->SerializeToOstream(ofs);
+   std::string data;
+   spotList->SerializeToString(&data);
+   codedOutput->WriteVarint32((int) data.length());
+   codedOutput->WriteRaw(data.c_str(), data.length());
+
+   delete codedOutput;
+   delete output;
 
    ofs->seekp(4, std::ios_base::beg);
 
+   if (ofs->tellg() != 4)
+   {
+      std::cout << "File pointer is at " << ofs->tellg() << "\n";
+      throw TSFException ("Failed to reset file pointer");
+   }
 
-
-
-
+   if (ofs->good())
+      WriteInt64(ofs, offset - 12);
+   else 
+      throw TSFException("Failed to write header offset.  Output file invalid");
 
 }
 
 /**
  * Writes the Header (SpotList) to a text file in key: value format
- * This can probably more elegantly be implemented using reflection
+ * This is implemented using reflection
  *
  * param ofs - pointer to ofstream that shoudl have been opened already
  * param spotList - pointer to the Header structure
@@ -397,16 +421,59 @@ void TSFUtils::WriteSpotFields(std::ofstream* of, std::vector<std::string>& fiel
    *of << "\n";
 }
 
-void TSFUtils::WriteSpotBinary(std::ofstream* of, TSF::Spot* spot)
+void TSFUtils::WriteSpotBinary(google::protobuf::io::CodedOutputStream* codedOutput, 
+      TSF::Spot* spot)
 {
+   std::string data;
+   spot->SerializeToString(&data);
+   codedOutput->WriteVarint32(data.length());
+   codedOutput->WriteRaw(data.c_str(), data.length());
 }
 
 
 void TSFUtils::WriteSpotText(std::ofstream* of, TSF::Spot* spot, std::vector<std::string>& fields)
 {
+   const google::protobuf::Descriptor* sd = spot->GetDescriptor();
+   const google::protobuf::Reflection* sr = spot->GetReflection();
+
    for (std::vector<std::string>::iterator it = fields.begin();
          it != fields.end(); it++)
    {
+         const google::protobuf::FieldDescriptor* fd = 
+            sd->FindFieldByName(*it);
+         if (fd != NULL && sr->HasField(*spot, fd))
+         {
+            switch (fd->type()) 
+            {
+               case google::protobuf::FieldDescriptor::TYPE_STRING:  
+                  *of << sr->GetString(*spot, fd);
+                  break;
+               case google::protobuf::FieldDescriptor::TYPE_INT32:
+                  *of << sr->GetInt32(*spot, fd);
+                  break;
+               case google::protobuf::FieldDescriptor::TYPE_INT64:
+                  *of << sr->GetInt64(*spot, fd);
+                  break;
+               case google::protobuf::FieldDescriptor::TYPE_UINT32:
+                  *of << sr->GetUInt32(*spot, fd);
+                  break;
+               case google::protobuf::FieldDescriptor::TYPE_UINT64:
+                  *of << sr->GetUInt64(*spot, fd);
+                  break;
+               case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+                  *of << sr->GetDouble(*spot, fd);
+                  break;
+               case google::protobuf::FieldDescriptor::TYPE_FLOAT:
+                  *of << sr->GetFloat(*spot, fd);
+                  break;
+               default:
+                  throw TSFException("This Field type is not yet supported in the WriteSpotText function"); 
+            }
+
+         }
+
+         /*
+
       if (*it == "molecule" && spot->has_molecule())
          *of << spot->molecule() << "\t";
       if (*it == "channel" && spot->has_channel())
@@ -441,7 +508,7 @@ void TSFUtils::WriteSpotText(std::ofstream* of, TSF::Spot* spot, std::vector<std
          *of << spot->x_position() << "\t";
       if (*it == "y_position" && spot->has_y_position())
          *of << spot->y_position() << "\t";
-
+*/
    }
    *of << "\n";
 }
@@ -483,6 +550,21 @@ int64_t TSFUtils::ReadInt64(std::istream *ifs) throw (TSFException)
       tmp.i = SwapInt64(tmp.i);
    }
    return tmp.i;
+}
+
+// Writes a signed 64bit big endian int to a stream afterconverts to little endian 
+// if needed
+void TSFUtils::WriteInt64(std::ostream *ofs, int64_t i) throw (TSFException)
+{
+   int64char tmp;
+   if (!IsBigEndian())
+   {
+      tmp.i = SwapInt64(i);
+   } else
+   {
+      tmp.i = i;
+   }
+   ofs->write(tmp.ch, 8);
 }
 
 std::vector<std::string> &TSFUtils::split(const std::string &s, char delim, std::vector<std::string> &elems) {
