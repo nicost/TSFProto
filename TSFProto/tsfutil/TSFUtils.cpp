@@ -147,6 +147,40 @@ int TSFUtils::GetHeaderText(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFExc
 
 void TSFUtils::WriteHeaderBinary(std::ofstream* ofs, TSF::SpotList* spotList) throw (TSFException)
 {
+   if (!ofs->is_open())
+   {
+      throw TSFException("Output file is not open");
+   }
+
+   if (!ofs->good())
+   {
+      throw TSFException("Output file is in a bad state...");
+   }
+
+   // output stream must be at insertion point for the header
+   // (i.e., after all spots have been inserted)
+   // register the offset, write the length as a varint, then go back to the
+   // beginning of the stream
+   
+   uint64_t offset = ofs->tellp();
+
+   uint32_t length = spotList->ByteSize();
+
+   google::protobuf::io::ZeroCopyOutputStream* output = 
+      new google::protobuf::io::OstreamOutputStream(ofs);
+   google::protobuf::io::CodedOutputStream* codedOutput = 
+      new google::protobuf::io::CodedOutputStream(output);
+
+   codedOutput->WriteVarint32(length);
+   spotList->SerializeToOstream(ofs);
+
+   ofs->seekp(4, std::ios_base::beg);
+
+
+
+
+
+
 }
 
 /**
