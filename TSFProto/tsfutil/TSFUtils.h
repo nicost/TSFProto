@@ -21,22 +21,27 @@
 class TSFUtils
 {
    public:
+      enum mode {
+         READ = 0,
+         WRITE = 1
+      };
 
-      static int GetHeaderBinary(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFException);
-      static int GetSpotBinary(google::protobuf::io::CodedInputStream* codedInput,
-          TSF::Spot* spot) throw (TSFException);
+
+      TSFUtils(std::fstream* fs, mode mode) throw (TSFException);
+      ~TSFUtils();
+
+      int GetHeaderBinary(TSF::SpotList* sl) throw (TSFException);
+      int GetSpotBinary(TSF::Spot* spot) throw (TSFException);
+
+      void WriteSpotBinary(TSF::Spot* spot);
+      void WriteHeaderBinary(TSF::SpotList* sl) throw (TSFException);
+
 
       static int GetHeaderText(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFException);
       static void GetSpotFields(std::ifstream* ifs, std::vector<std::string>& fields) 
          throw (TSFException);
       static int GetSpotText(std::ifstream* ifs, TSF::Spot* spot, 
             std::vector<std::string>& fields) throw (TSFException);
-
-      static void PrepBinaryFile(std::fstream* fs) throw (TSFException);
-      static void WriteSpotBinary(google::protobuf::io::CodedOutputStream* codedOutput, 
-            TSF::Spot* spot);
-      static void WriteHeaderBinary(std::fstream* fs, TSF::SpotList* sl) 
-         throw (TSFException);
 
       static void WriteHeaderText(std::ofstream* ofs, TSF::SpotList* sl) throw (TSFException);
       static void WriteSpotFields(std::ofstream* of, std::vector<std::string>& fields) 
@@ -54,7 +59,7 @@ class TSFUtils
       static const int EF = 3;
 
       // Following are function used internally
-      //
+      // since they are static, they may be useful to others as well..
 
       static void InsertByReflection(const google::protobuf::Reflection* sr,
          google::protobuf::Message* m, const google::protobuf::FieldDescriptor* fd, 
@@ -72,11 +77,13 @@ class TSFUtils
 
       static int32_t ReadInt32(std::istream *ifs) throw (TSFException);
       static int64_t ReadInt64(std::istream *ifs) throw (TSFException);
+      static int32_t ReadInt32(google::protobuf::io::CodedInputStream* ci);
+      static int64_t ReadInt64(google::protobuf::io::CodedInputStream* ci);
+
       static int32_t SwapInt32(int32_t val);
       static int64_t SwapInt64(int64_t val);
       static void WriteInt64(std::ostream *ofs, int64_t i) throw (TSFException);
-      inline
-      static bool IsBigEndian(void) 
+      inline static bool IsBigEndian(void) 
       {
           union {
               uint32_t i;
@@ -89,6 +96,14 @@ class TSFUtils
             std::vector<std::string> &elems);
       static std::vector<std::string> split(const std::string &s, char delim);
 
+   private:
+      mode mode_;
+      std::fstream* fs_;
+      bool firstWrite_;
+      google::protobuf::io::IstreamInputStream* input_;
+      google::protobuf::io::CodedInputStream* codedInput_;
+      google::protobuf::io::ZeroCopyOutputStream* output_;
+      google::protobuf::io::CodedOutputStream* codedOutput_;
 };
 
 #endif

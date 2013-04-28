@@ -70,13 +70,8 @@ int main (int argc, const char*  argv[])
    }
 
 
-   std::ifstream ifs;
-   std::ofstream ofs;
    TSF::SpotList* sl = new TSF::SpotList();
    TSF::Spot* spot = new TSF::Spot;
-
-   google::protobuf::io::IstreamInputStream* input = NULL;
-   google::protobuf::io::CodedInputStream* codedInput = NULL;
 
    // Silence Protocol Buffer warnings
    google::protobuf::LogSilencer* ls = new google::protobuf::LogSilencer();
@@ -84,27 +79,22 @@ int main (int argc, const char*  argv[])
    try {
       if (inputBinary)
       {
-         ifs.open(inputFile, std::ios_base::in | std::ios_base::binary);
+         std::fstream ifs;
+         ifs.open(inputFile, std::ios_base::in | std::ios_base::out | std::ios_base::binary);
+
+         TSFUtils* tsfIn = new TSFUtils(&ifs, TSFUtils::READ);
          
-         TSFUtils::GetHeaderBinary(&ifs, sl);
-
-         // not sure why but I need to close and reopen the file to get
-         // to the first spot positions
-         ifs.close();
-
-         ifs.open(inputFile, std::ios_base::in | std::ios_base::binary);
-         ifs.seekg(12);
-         input = new google::protobuf::io::IstreamInputStream(&ifs);
-         codedInput = new google::protobuf::io::CodedInputStream(input);
+         tsfIn->GetHeaderBinary(sl);
 
          if (outputText)
          {
             // truncate and open outputfile in text mode
             // TODO: test for existence of file and warn user
+            std::ofstream ofs;
             ofs.open(outputFile, std::ios_base::out | std::ios_base::trunc);
             TSFUtils::WriteHeaderText(&ofs, sl);
 
-            int ret = TSFUtils::GetSpotBinary(codedInput, spot);
+            int ret = tsfIn->GetSpotBinary(spot);
             std::vector<std::string> fields;
 
             TSFUtils::ExtractSpotFields(spot, fields);
@@ -114,7 +104,7 @@ int main (int argc, const char*  argv[])
             unsigned long counter = 0;
             while (ret == TSFUtils::GOOD)
             {
-               ret = TSFUtils::GetSpotBinary(codedInput, spot);
+               ret = tsfIn->GetSpotBinary(spot);
                if (ret == TSFUtils::GOOD)
                   TSFUtils::WriteSpotText(&ofs, spot, fields);
                counter++;
@@ -125,22 +115,18 @@ int main (int argc, const char*  argv[])
                }
             }
             std::cout << "Wrote " << counter << " spots\n";
+            ofs.close();
          } else if (outputBinary)
          {
             std::fstream fs; 
             fs.open(outputFile, std::ios_base::out | std::ios_base::trunc | 
                   std::ios_base::binary);
-            TSFUtils::PrepBinaryFile(&fs);
-
-            google::protobuf::io::ZeroCopyOutputStream* output =
-               new google::protobuf::io::OstreamOutputStream(&fs);
-            google::protobuf::io::CodedOutputStream* codedOutput =
-               new google::protobuf::io::CodedOutputStream(output);
+            TSFUtils* tsfOut = new TSFUtils(&fs, TSFUtils::WRITE);
 
             unsigned long counter = 0;
-            while (TSFUtils::GetSpotBinary(codedInput, spot) == TSFUtils::GOOD)
+            while (tsfIn->GetSpotBinary(spot) == TSFUtils::GOOD)
             {
-               TSFUtils::WriteSpotBinary(codedOutput, spot);
+               tsfOut->WriteSpotBinary(spot);
                counter++;
                if (counter % 100000 == 0)
                {
@@ -148,21 +134,16 @@ int main (int argc, const char*  argv[])
                   std::cout.flush();
                }
             }
-            delete codedOutput;
-            delete output;
 
             std::cout << "Wrote " << counter << " spots\n";
-            TSFUtils::WriteHeaderBinary(&fs, sl);
+            tsfOut->WriteHeaderBinary(sl);
             fs.close();
          }
          ifs.close();
-         ofs.close();
-
-         delete sl;
-         delete spot;
 
       } else if (inputText)
       { 
+         std::ifstream ifs;
          ifs.open(inputFile, std::ios_base::in);
          
          TSFUtils::GetHeaderText(&ifs, sl);
@@ -173,6 +154,7 @@ int main (int argc, const char*  argv[])
          {
             // truncate and open outputfile in text mode
             // TODO: test for existence of file and warn user
+            std::ofstream ofs;
             ofs.open(outputFile, std::ios_base::out | std::ios_base::trunc);
             TSFUtils::WriteHeaderText(&ofs, sl);
             TSFUtils::WriteSpotFields(&ofs, fields);
@@ -180,12 +162,16 @@ int main (int argc, const char*  argv[])
             int counter = 0;
             while (TSFUtils::GetSpotText(&ifs, spot, fields) == TSFUtils::GOOD)
             {
-               counter++;
                // write the spots out
                TSFUtils::WriteSpotText(&ofs, spot, fields);
+               counter++;
+               if (counter % 100000 == 0)
+               {
+                  std::cout << ".";
+                  std::cout.flush();
+               }
             }
             std::cout << "Found " << counter << " spots\n";
-
 
             ifs.close();
             ofs.close();
@@ -194,17 +180,13 @@ int main (int argc, const char*  argv[])
             std::fstream fs; 
             fs.open(outputFile, std::ios_base::out | std::ios_base::trunc | 
                   std::ios_base::binary);
-            TSFUtils::PrepBinaryFile(&fs);
 
-            google::protobuf::io::ZeroCopyOutputStream* output =
-               new google::protobuf::io::OstreamOutputStream(&fs);
-            google::protobuf::io::CodedOutputStream* codedOutput =
-               new google::protobuf::io::CodedOutputStream(output);
+            TSFUtils* tsfOut = new TSFUtils(&fs, TSFUtils::WRITE);
 
             unsigned long counter = 0;
             while (TSFUtils::GetSpotText(&ifs, spot, fields) == TSFUtils::GOOD)
             {
-               TSFUtils::WriteSpotBinary(codedOutput, spot);
+               tsfOut->WriteSpotBinary(spot);
                counter++;
                if (counter % 100000 == 0)
                {
@@ -212,26 +194,26 @@ int main (int argc, const char*  argv[])
                   std::cout.flush();
                }
             }
-            delete codedOutput;
-            delete output;
 
             std::cout << "Wrote " << counter << " spots\n";
-            TSFUtils::WriteHeaderBinary(&fs, sl);
+            tsfOut->WriteHeaderBinary(sl);
+
+            delete tsfOut;
+            ifs.close();
             fs.close();
          }
       }
    } catch (TSFException ex) 
    {
       std::cout << ex.getMessage().c_str() << std::endl;
-      if (ifs.is_open())
-      {
-         ifs.close();
-      }
       return 1;
    } catch (...)
    {
       std::cout << "Some exceptions occurred.  Exciting now...\n";
    }
+
+   delete sl;
+   delete spot;
 
    delete ls;
 

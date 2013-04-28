@@ -1,6 +1,15 @@
 /**
  * Utility functions for reading and writing Tagged Spot Format files
  *
+ * This class contains static functions for reading and writing to text files
+ * but should be instantiated to read and write binary filed
+ * For each input or output file a seperate instance should be created and 
+ * the enum "mode" in the constructor indicates whether this is a read or write 
+ * instance.  When reading, the GetHeaderBinary function should be called before 
+ * reading the individual spots, when writing, the individual spots should be 
+ * written before calling the function WriteHeaderBinary
+ *
+ * 
  * Nico Stuurman, nico.stuurman at ucsf.edu
  *
  * April 20, 2013
@@ -21,78 +30,115 @@
 
 
 /**
- * Reads the SpotList (Header info) from a tsf file
- * Expects a freshly opened stream, i.e. the filepointer should be at the beginning
- * Reads the magic number and offset to the SpotList
- * Reads and fills the SpotList
- * SpotList should point to a valid SpotList data structure
- * returns GOOD on succes, will throw a TSFException otherwise
- * 
+ * Constructor
+ * Decides whether this object is going to be used for input or output
+ * Instantiation of this calss is only needed for binary (tsf) files
+ * Text files can be written using static methods
  */
-int TSFUtils::GetHeaderBinary(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFException)
+TSFUtils::TSFUtils(std::fstream* fs, mode mode) throw (TSFException) :
+   mode_ (mode),
+   fs_ (fs),
+   firstWrite_(true)
 {
+   if (fs == NULL || !fs->is_open())
+      throw TSFException("File is not open");
+   // even though we only need an ifstream for reading
+   // we need the write flag set to be able to seek to a previous position
+   // Not sure how to test for that...
+
+   if (mode_ == READ) 
+   {
+   }
+   if (mode_ == WRITE)
+   {
+      output_ = new google::protobuf::io::OstreamOutputStream(fs_);
+      codedOutput_ = new google::protobuf::io::CodedOutputStream(output_);
+   }
+}
+
+TSFUtils::~TSFUtils()
+{
+   if (mode_ == READ)
+   {
+      delete input_;
+      delete codedInput_;
+      delete output_;
+      delete codedOutput_;
+   }
+}
+
+/**
+ * Gets the header information from a tsf file
+ * After succefully obtaining the spotlist, resets the 
+ * file pointer to the first spot
+ */
+int TSFUtils::GetHeaderBinary(TSF::SpotList* sl) throw (TSFException)
+{
+   if (mode_ != READ)
+      throw TSFException("TSFUtils was opened in write-mode.");
+
    if (sl == NULL)
-   {
-      throw TSFException("Programming error: SpotList pointer was NULL\n");
-   }
+      throw TSFException("Programming error: SpotList pointer was NULL");
 
-   if (!ifs->is_open())
-   {
-      throw TSFException("Input file was not opened correctly.  Does it exist?");
-   }
-   if (!ifs->good())
-   {
+   if (!fs_->good())
       throw TSFException("Input file stream is in a bad state...");
-   }
 
-   int32_t magic = ReadInt32(ifs); 
+   int32_t magic = ReadInt32(fs_); 
 
    if (magic != 0) 
    {
       throw TSFException("Magic number is not 0, is this a tsf file?");
    }
 
-   if (!ifs->good())
+   if (!fs_->good())
    {
       throw TSFException("Input file stream is in a bad state...");
    }
 
-   int64_t offset = ReadInt64(ifs);
+   int64_t offset = ReadInt64(fs_);
 
    if (offset == 0)
    {
       throw TSFException("Offset is 0, can not find header data in this file");
    }
 
-   ifs->seekg(offset, std::ios_base::cur);
+   fs_->seekg(offset, std::ios_base::cur);
 
-   google::protobuf::io::IstreamInputStream* input = 
-      new google::protobuf::io::IstreamInputStream(ifs);
-   google::protobuf::io::CodedInputStream* codedInput = 
-      new google::protobuf::io::CodedInputStream(input);
+   input_ = new google::protobuf::io::IstreamInputStream(fs_);
+   codedInput_ = new google::protobuf::io::CodedInputStream(input_);
 
    uint32_t mSize;
-   if (!codedInput->ReadVarint32(&mSize))
+   if (!codedInput_->ReadVarint32(&mSize))
    {
-      delete codedInput;
-      delete input;
       throw TSFException("Failed to read SpotList offset");
    }
 
    std::string buffer;
 
-   if (codedInput->ReadString(&buffer, mSize))                           
+   if (codedInput_->ReadString(&buffer, mSize))                           
    {
       sl->ParseFromString(buffer);
    } else
    {
-      delete codedInput;
-      delete input;
       throw TSFException("Failed to read SpotList data");
    }
 
-   delete codedInput;
-   delete input;
+   // we need to set the read caret back to byte 12
+   // the protobuf utilities do not seem to support this
+   // Therefore, delete them, set the file pointer to 12
+   // make sure this worked and recreate the codedInputStream
+
+   delete codedInput_;
+   delete input_;
+   
+   fs_->clear();
+   fs_->seekg(12, std::ios_base::beg);
+   
+   if (12 != fs_->tellg())
+      throw TSFException ("Failed to set filepointer.  Try setting the read flag");
+
+   input_ = new google::protobuf::io::IstreamInputStream(fs_);
+   codedInput_ = new google::protobuf::io::CodedInputStream(input_);
 
    return GOOD;
 }
@@ -144,64 +190,39 @@ int TSFUtils::GetHeaderText(std::ifstream* ifs, TSF::SpotList* sl) throw (TSFExc
    return GOOD;
 }
 
-/**
- * Preps tsf file by writing zeros to the magic number and SpotList offset
- */
-void TSFUtils::PrepBinaryFile(std::fstream* fs) throw (TSFException)
-{
-   if (! fs->is_open() && fs->good())
-      throw TSFException("Outputfile can not be written to");
-   for (int i=0; i < 12; i++)
-      fs->put(0);
-}
 
 /**
  * Writes the Header (SpotList) to a tsf file
  * The fstream need to be opened in read/write mode so that the seek back to  
  * the beginning of the file will succeed
  */
-void TSFUtils::WriteHeaderBinary(std::fstream* ofs, TSF::SpotList* spotList) throw (TSFException)
+void TSFUtils::WriteHeaderBinary(TSF::SpotList* spotList) throw (TSFException)
 {
-   if (!ofs->is_open())
-   {
-      throw TSFException("Output file is not open");
-   }
-
-   if (!ofs->good())
-   {
-      throw TSFException("Output file is in a bad state...");
-   }
-
    // output stream must be at insertion point for the header
    // (i.e., after all spots have been inserted)
    // register the offset, write the length as a varint, then go back to the
    // beginning of the stream
    
-   int64_t offset = ofs->tellp();
-
-   google::protobuf::io::ZeroCopyOutputStream* output = 
-      new google::protobuf::io::OstreamOutputStream(ofs);
-   google::protobuf::io::CodedOutputStream* codedOutput = 
-      new google::protobuf::io::CodedOutputStream(output);
+   int64_t offset = codedOutput_->ByteCount();
 
    std::string data;
    spotList->SerializeToString(&data);
-   codedOutput->WriteVarint32((int) data.length());
-   codedOutput->WriteRaw(data.c_str(), data.length());
+   codedOutput_->WriteVarint32((int) data.length());
+   codedOutput_->WriteRaw(data.c_str(), data.length());
 
-   delete codedOutput;
-   delete output;
+   // Need to delete these objects to flush their content to disk
+   delete codedOutput_;
+   delete output_;
 
-   ofs->seekp(4, std::ios_base::beg);
+   fs_->seekp(4, std::ios_base::beg);
 
-   if (ofs->tellg() != 4)
+   if (fs_->tellg() != 4)
    {
-      std::cout << "File pointer is at " << ofs->tellg() << "\n";
       throw TSFException ("Failed to reset file pointer");
    }
 
-   if (ofs->good())
-      WriteInt64(ofs, offset - 12);
+   if (fs_->good())
+      WriteInt64(fs_, offset - 12);
    else 
       throw TSFException("Failed to write header offset.  Output file invalid");
 
@@ -274,15 +295,19 @@ void TSFUtils::WriteHeaderText(std::ofstream* ofs, TSF::SpotList* spotList) thro
 /**
  *
  */
-int TSFUtils::GetSpotBinary(google::protobuf::io::CodedInputStream* codedInput, 
-      TSF::Spot* spot) throw (TSFException)
+int TSFUtils::GetSpotBinary(TSF::Spot* spot) throw (TSFException)
 {
+   if (mode_ != READ)
+      throw TSFException("TSFUtils was opened in write-mode.");
+
    if (spot == NULL)
-   {
       throw TSFException("Programming error: spot is not pointing to an object\n");
-   }
+
+   if (codedInput_ == NULL)
+      throw TSFException("Programming error: Always first call GetHeaderBinary before this function");
+
    uint32_t mSize;
-   if (!codedInput->ReadVarint32(&mSize))
+   if (!codedInput_->ReadVarint32(&mSize))
    {
       throw TSFException("Failed to read Spot size");
    }
@@ -290,7 +315,7 @@ int TSFUtils::GetSpotBinary(google::protobuf::io::CodedInputStream* codedInput,
    std::string buffer;
 
    try {
-      if (codedInput->ReadString(&buffer, mSize)) 
+      if (codedInput_->ReadString(&buffer, mSize)) 
       {
          if (!spot->ParseFromString(buffer)) 
          {
@@ -421,16 +446,32 @@ void TSFUtils::WriteSpotFields(std::ofstream* of, std::vector<std::string>& fiel
    *of << "\n";
 }
 
-void TSFUtils::WriteSpotBinary(google::protobuf::io::CodedOutputStream* codedOutput, 
-      TSF::Spot* spot)
+void TSFUtils::WriteSpotBinary(TSF::Spot* spot)
 {
+   if (mode_ != WRITE)
+      throw TSFException ("TSFUtils was not opened in write mode");
+
+   if (firstWrite_)
+   {
+      codedOutput_->Skip(12);
+      firstWrite_ = false;
+   }
+
+   if (codedOutput_ == NULL)
+      throw TSFException ("Can not wite spot data after header was written");
+
    std::string data;
    spot->SerializeToString(&data);
-   codedOutput->WriteVarint32(data.length());
-   codedOutput->WriteRaw(data.c_str(), data.length());
+   codedOutput_->WriteVarint32(data.length());
+   codedOutput_->WriteRaw(data.c_str(), data.length());
 }
 
 
+/**
+ * Write a single spot to a line in a text file
+ * The fields being output and their order is determined
+ * by the vector "fields" that should contain fieldnames
+ */
 void TSFUtils::WriteSpotText(std::ofstream* of, TSF::Spot* spot, std::vector<std::string>& fields)
 {
    const google::protobuf::Descriptor* sd = spot->GetDescriptor();
@@ -439,76 +480,37 @@ void TSFUtils::WriteSpotText(std::ofstream* of, TSF::Spot* spot, std::vector<std
    for (std::vector<std::string>::iterator it = fields.begin();
          it != fields.end(); it++)
    {
-         const google::protobuf::FieldDescriptor* fd = 
-            sd->FindFieldByName(*it);
-         if (fd != NULL && sr->HasField(*spot, fd))
+      const google::protobuf::FieldDescriptor* fd = 
+         sd->FindFieldByName(*it);
+      if (fd != NULL && sr->HasField(*spot, fd))
+      {
+         switch (fd->type()) 
          {
-            switch (fd->type()) 
-            {
-               case google::protobuf::FieldDescriptor::TYPE_STRING:  
-                  *of << sr->GetString(*spot, fd);
-                  break;
-               case google::protobuf::FieldDescriptor::TYPE_INT32:
-                  *of << sr->GetInt32(*spot, fd);
-                  break;
-               case google::protobuf::FieldDescriptor::TYPE_INT64:
-                  *of << sr->GetInt64(*spot, fd);
-                  break;
-               case google::protobuf::FieldDescriptor::TYPE_UINT32:
-                  *of << sr->GetUInt32(*spot, fd);
-                  break;
-               case google::protobuf::FieldDescriptor::TYPE_UINT64:
-                  *of << sr->GetUInt64(*spot, fd);
-                  break;
-               case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
-                  *of << sr->GetDouble(*spot, fd);
-                  break;
-               case google::protobuf::FieldDescriptor::TYPE_FLOAT:
-                  *of << sr->GetFloat(*spot, fd);
-                  break;
-               default:
-                  throw TSFException("This Field type is not yet supported in the WriteSpotText function"); 
-            }
-
+            case google::protobuf::FieldDescriptor::TYPE_STRING:  
+               *of << sr->GetString(*spot, fd) << "\t";
+               break;
+            case google::protobuf::FieldDescriptor::TYPE_INT32:
+               *of << sr->GetInt32(*spot, fd) << "\t";
+               break;
+            case google::protobuf::FieldDescriptor::TYPE_INT64:
+               *of << sr->GetInt64(*spot, fd) << "\t";
+               break;
+            case google::protobuf::FieldDescriptor::TYPE_UINT32:
+               *of << sr->GetUInt32(*spot, fd) << "\t";
+               break;
+            case google::protobuf::FieldDescriptor::TYPE_UINT64:
+               *of << sr->GetUInt64(*spot, fd) << "\t";
+               break;
+            case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+               *of << sr->GetDouble(*spot, fd) << "\t";
+               break;
+            case google::protobuf::FieldDescriptor::TYPE_FLOAT:
+               *of << sr->GetFloat(*spot, fd) << "\t";
+               break;
+            default:
+               throw TSFException("This Field type is not yet supported in the WriteSpotText function"); 
          }
-
-         /*
-
-      if (*it == "molecule" && spot->has_molecule())
-         *of << spot->molecule() << "\t";
-      if (*it == "channel" && spot->has_channel())
-         *of << spot->channel() << "\t";
-      if (*it == "frame" && spot->has_frame())
-         *of << spot->frame() << "\t";
-      if (*it == "slice" && spot->has_slice())
-         *of << spot->slice() << "\t";
-      if (*it == "pos" && spot->has_pos())
-         *of << spot->pos() << "\t";
-      if (*it == "x" && spot->has_x())
-         *of << spot->x() << "\t";
-      if (*it == "y" && spot->has_y())
-         *of << spot->y() << "\t";
-      if (*it == "z" && spot->has_z())
-         *of << spot->z() << "\t";
-      if (*it == "intensity" && spot->has_intensity())
-         *of << spot->intensity() << "\t";
-      if (*it == "background" && spot->has_background())
-         *of << spot->background() << "\t";
-      if (*it == "width" && spot->has_width())
-         *of << spot->width() << "\t";
-      if (*it == "a" && spot->has_a())
-         *of << spot->a() << "\t";
-      if (*it == "theta" && spot->has_theta())
-         *of << spot->theta() << "\t";
-      if (*it == "x_precision" && spot->has_x_precision())
-         *of << spot->x_precision() << "\t";
-      if (*it == "y_precision" && spot->has_y_precision())
-         *of << spot->y_precision() << "\t";
-      if (*it == "x_position" && spot->has_x_position())
-         *of << spot->x_position() << "\t";
-      if (*it == "y_position" && spot->has_y_position())
-         *of << spot->y_position() << "\t";
-*/
+      }
    }
    *of << "\n";
 }
@@ -539,12 +541,44 @@ int32_t TSFUtils::ReadInt32(std::istream *ifs) throw (TSFException)
    return tmp.i;
 }
 
+/**
+ * Reads a 32bit int from a codedInputStream
+ * Converts to little endian on a little endian platform
+ * Shoulds only be used when big endian numbers are expected
+ */
+int32_t TSFUtils::ReadInt32(google::protobuf::io::CodedInputStream* ci)
+{
+   int32char tmp;
+   ci->ReadRaw(tmp.ch, 4);
+   if (!IsBigEndian())
+   {
+      tmp.i = SwapInt32(tmp.i);
+   }
+   return tmp.i;
+}
+
 // Reads a signed 64bit big endian int from a stream and converts to little endian 
 // if needed
 int64_t TSFUtils::ReadInt64(std::istream *ifs) throw (TSFException)
 {
    int64char tmp;
    ifs->read(tmp.ch, 8);
+   if (!IsBigEndian())
+   {
+      tmp.i = SwapInt64(tmp.i);
+   }
+   return tmp.i;
+}
+
+/**
+ * Reads a 64bit int from a codedInputStream
+ * Converts to little endian on a little endian platform
+ * Shoulds only be used when big endian numbers are expected
+ */
+int64_t TSFUtils::ReadInt64(google::protobuf::io::CodedInputStream* ci)
+{
+   int64char tmp;
+   ci->ReadRaw(tmp.ch, 8);
    if (!IsBigEndian())
    {
       tmp.i = SwapInt64(tmp.i);
