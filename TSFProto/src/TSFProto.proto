@@ -4,6 +4,11 @@
 // object can be estimated by fitting (the basis of super-resolution 
 // microscopy).  This data format is used to convey information about 
 // such spots and the results and methodolgy of fitting
+// Authors: Nico Stuurman (nico.stuurman at ucsf.edu), 2011-2013 
+//          Steve Wolter (swolter at sdf.org), 2014
+// Contributions by Nico Stuurman are copyright Regents of the University of
+//                   California
+// License: BSD 2-Clause License
 package TSF;
 
 option java_package = "edu.ucsf.tsf";
