@@ -1,0 +1,17 @@
+import "src/TSFProto.proto";
+
+option java_package = "edu.ucsf.tsf";
+
+extend TSF.Spot {
+
+   // Intensity and background calculated using the aperture method
+   // as described in http://dx.doi.org/10.1038/nmeth.4073
+   optional float intensity_aperture = 1500;
+   optional float intensity_background = 1501;
+   optional float intensity_ratio = 1502;
+
+   // Sigma calculation according to Mortenson et al.:
+   // http://dx.doi.org/10.1038/nmeth.1447
+   optional float m_sigma = 1503;
+
+}
