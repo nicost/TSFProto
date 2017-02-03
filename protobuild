@@ -1,6 +1,6 @@
-protoc --java_out=build src/MMLocM.proto src/TSFProto.proto
-javac -source 1.6 -target 1.6 -bootclasspath /System/Library/Frameworks/JavaVM.framework/Classes/classes.jar -sourcepath build -classpath dist/gproto.jar build/edu/ucsf/tsf/TaggedSpotsProtos.java build/edu/ucsf/tsf/MMLocM.java
-jar cf dist/TSFProto.jar -C build .
+protoc --java_out=java/src/main/java src/MMLocM.proto src/TSFProto.proto
+javac -source 1.6 -target 1.6 -bootclasspath /System/Library/Frameworks/JavaVM.framework/Classes/classes.jar -sourcepath java/src/main/java -classpath dist/gproto.jar -d java/build java/src/main/java/edu/ucsf/tsf/TaggedSpotsProtos.java java/src/main/java/edu/ucsf/tsf/MMLocM.java
+jar cf dist/TSFProto.jar -C java/build .
 protoc --cpp_out=buildcpp src/TSFProto.proto src/MMLocM.proto
 g++ -c buildcpp/TSFProto.pb.cc -o buildcpp/TSFProto.o
 ar cru buildcpp/libTSFProto.a buildcpp/TSFProto.o /usr/local/lib/libprotobuf.a
