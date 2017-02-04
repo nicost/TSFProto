@@ -13,7 +13,7 @@
 
 package TSF;
 
-option java_package = "edu.ucsf.tsf";
+option java_package = "edu.ucsf.valelab.tsf";
 option java_outer_classname = "TaggedSpotsProtos";
 
 enum FitMode {
