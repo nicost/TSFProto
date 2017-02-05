@@ -1,13 +1,26 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
    <modelVersion>4.0.0</modelVersion>
-
    <groupId>edu.ucsf.valelab.tsf</groupId>
    <artifactId>tsfproto</artifactId>
    <version>1.0.0</version>
-   <packaging> jar</packaging>
+   <packaging>jar</packaging>
 
    <name>Tagged Spot Format File Format</name>
+   <description>Java library to read and write files based on the google protocols-based tagged spot format for single molecule localizaton datat</description>
+   <url>https://github.com/nicost/TSFProto/tree/master</url>
+
+   <licenses>
+      <license>
+         <name>The BSD 2-Clause License</name>
+         <url>http://opensource.org/licenses/BSD-2-Clause</url>
+         <distribution>repo</distribution>
+      </license>
+   </licenses>
+
+   <scm>
+      <url>https://github.com/nicost/TSFProto/tree/master</url>
+   </scm>
 
    <dependencies>
       <dependency>
@@ -16,5 +29,5 @@
            <version>2.5.0</version>
       </dependency>
    </dependencies>
-</project>
 
+</project>
