@@ -1,6 +1,6 @@
 import "src/TSFProto.proto";
 
-option java_package = "edu.ucsf.tsf";
+option java_package = "edu.ucsf.valelab.tsf";
 
 extend TSF.Spot {
 

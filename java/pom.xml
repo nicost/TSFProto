@@ -1,0 +1,44 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+
+   <groupId>edu.ucsf.valelab.tsf.mmg</groupId>
+   <artifactId>tsfproto-mmg</artifactId>
+   <version>1.0.0</version>
+   <packaging> jar</packaging>
+   <name>Tagged Spot Format File Format Micro-Manager extensions</name>
+
+   <properties>
+      <maven.compiler.source>1.6</maven.compiler.source>
+      <maven.compiler.target>1.6</maven.compiler.target>
+   </properties>
+
+   <build>
+      <plugins>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>3.1</version>
+            <configuration>
+               <excludes>
+                  <exclude>edu/ucsf/valelab/tsf/TaggedSpotsProtos.java</exclude>
+               </excludes>
+            </configuration>
+         </plugin>
+      </plugins>
+   </build>
+
+   <dependencies>
+      <dependency>
+          <groupId>com.google.protobuf</groupId>
+          <artifactId>protobuf-java</artifactId>
+           <version>2.5.0</version>
+      </dependency>
+      <dependency>
+          <groupId>edu.ucsf.valelab.tsf</groupId>
+          <artifactId>tsfproto</artifactId>
+           <version>1.0.0</version>
+      </dependency>
+   </dependencies>
+</project>
+

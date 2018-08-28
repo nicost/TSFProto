@@ -1,0 +1,4 @@
+protoc --java_out=java/src/main/java src/MMLocM.proto
+cd java
+mvn install
+cd ..
