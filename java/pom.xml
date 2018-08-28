@@ -4,7 +4,7 @@
 
    <groupId>edu.ucsf.valelab.tsf.mmg</groupId>
    <artifactId>tsfproto-mmg</artifactId>
-   <version>1.0.0</version>
+   <version>1.0.1</version>
    <packaging> jar</packaging>
    <name>Tagged Spot Format File Format Micro-Manager extensions</name>
 

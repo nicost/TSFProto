@@ -1,7 +1,12 @@
-protoc --java_out=java/src/main/java src/MMLocM.proto
-cd java
+cd src
+protoc --java_out=../java/src/main/java MMLocM.proto
+cd ../java
 mvn install
 cd ..
-protoc --cpp_out=buildcpp src/MMLocM.proto 
-g++ -c buildcpp/MMLocM.pb.cc -o buildcpp/MMLocM.o
-ar cru buildcpp/libTSFMMLocMProto.a buildcpp/MMLocM.o /usr/local/lib/libprotobuf.a
+cd src
+protoc --cpp_out=../buildcpp MMLocM.proto 
+cd ../buildcpp
+g++ -c MMLocM.pb.cc -o MMLocM.o
+ar cru libTSFMMLocMProto.a MMLocM.o /usr/local/lib/libprotobuf.a
+cd ..
+

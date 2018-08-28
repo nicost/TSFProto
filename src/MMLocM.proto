@@ -1,4 +1,4 @@
-import "src/TSFProto.proto";
+import "TSFProto.proto";
 
 option java_package = "edu.ucsf.valelab.tsf";
 
@@ -13,5 +13,6 @@ extend TSF.Spot {
    // Sigma calculation according to Mortenson et al.:
    // http://dx.doi.org/10.1038/nmeth.1447
    optional float m_sigma = 1503;
+   optional float integral_aperture_sigma = 1504;
 
 }
